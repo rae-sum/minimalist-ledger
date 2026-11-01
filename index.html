@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monochrome Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+        (function() {
+            const t = localStorage.getItem('ml_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+    
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        
+        :root, [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --bg-card: #111111;
+            --bg-elevated: #1a1a1a;
+            --bg-input: #0a0a0a;
+            --border: #262626;
+            --border-hover: #333333;
+            --text: #f5f5f5;
+            --text-secondary: #a3a3a3;
+            --text-muted: #737373;
+            --text-faint: #525252;
+            --accent: #f5f5f5;
+            --accent-fg: #0a0a0a;
+            --bar-track: #1a1a1a;
+            --bar-fill: #f5f5f5;
+            --danger: #f87171;
+            --success: #d4b106;
+            --gold-accent: #e6c547;
+            --shadow: 0 4px 24px -4px rgba(0,0,0,0.45);
+            --modal-overlay: rgba(0,0,0,0.8);
+            --toast-bg: #1a1a1a;
+            --toast-border: #333333;
+            --bottom-bg: rgba(10,10,10,0.9);
+            --date-filter: invert(0.65);
+        }
+        
+        [data-theme="light"] {
+            --bg: #fafafa;
+            --bg-card: #ffffff;
+            --bg-elevated: #f4f4f5;
+            --bg-input: #fafafa;
+            --border: #e4e4e7;
+            --border-hover: #d4d4d8;
+            --text: #18181b;
+            --text-secondary: #52525b;
+            --text-muted: #71717a;
+            --text-faint: #a1a1aa;
+            --accent: #18181b;
+            --accent-fg: #ffffff;
+            --bar-track: #f4f4f5;
+            --bar-fill: #18181b;
+            --danger: #ef4444;
+            --success: #ca8a04;
+            --gold-accent: #b89728;
+            --shadow: 0 1px 2px 0 rgba(0,0,0,0.04);
+            --modal-overlay: rgba(24,24,27,0.4);
+            --toast-bg: #18181b;
+            --toast-border: #27272a;
+            --bottom-bg: rgba(250,250,250,0.9);
+            --date-filter: none;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            overscroll-behavior: none;
+            transition: background 0.3s ease, color 0.3s ease;
+            letter-spacing: -0.01em;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            transition: border-color 0.2s ease, box-shadow 0.25s ease;
+        }
+        [data-theme="dark"] .card {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        }
+        .card-elevated {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+        }
+        
+        .text-primary { color: var(--text); }
+        .text-secondary { color: var(--text-secondary); }
+        .text-muted { color: var(--text-muted); }
+        .text-faint { color: var(--text-faint); }
+        
+        .border-theme { border-color: var(--border); }
+        .border-hover:hover { border-color: var(--border-hover); }
+        
+        .btn-accent {
+            background: var(--accent);
+            color: var(--accent-fg);
+            transition: opacity 0.2s ease, transform 0.15s ease;
+        }
+        .btn-accent:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+        .btn-ghost {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        
+        .input-theme {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .input-theme:focus {
+            border-color: var(--text-muted);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+        }
+        [data-theme="dark"] .input-theme:focus {
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+        }
+        
+        .bar-track { background: var(--bar-track); }
+        .bar-fill-theme { background: var(--bar-fill); }
+        
+        .modal-backdrop {
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+            background: var(--modal-overlay);
+        }
+        .modal-backdrop.open {
+            opacity: 1; pointer-events: auto;
+        }
+        .modal-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            transform: translateY(16px); opacity: 0;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        [data-theme="dark"] .modal-panel {
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+        }
+        .modal-backdrop.open .modal-panel {
+            transform: translateY(0); opacity: 1;
+        }
+        
+        .toast {
+            background: var(--toast-bg);
+            border: 1px solid var(--toast-border);
+            color: #f5f5f5;
+            transform: translateY(120%); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .toast.show {
+            transform: translateY(0); opacity: 1;
+        }
+        
+        .bar-fill { transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        .card-enter {
+            animation: cardIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="date"]::-webkit-calendar-picker-indicator { 
+            filter: var(--date-filter); 
+            cursor: pointer; 
+        }
+        
+        .tab-active { color: var(--text); }
+        .tab-active i, .tab-active div, .tab-active svg { color: var(--text); }
+        .tab-inactive { color: var(--text-muted); }
+        
+        .bottom-bar {
+            background: var(--bottom-bg);
+            border-top: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.04);
+        }
+        [data-theme="dark"] .bottom-bar {
+            box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .icon-box {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        
+        .danger { color: var(--danger); }
+        .success { color: var(--success); }
+        
+        .cal-day {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        .cal-day:hover {
+            background: var(--bg-elevated);
+            color: var(--text);
+        }
+        .cal-day.today {
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .cal-day.selected {
+            background: var(--accent);
+            color: var(--accent-fg);
+        }
+        
+        .label-caps {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .divider-line {
+            height: 1px;
+            background: var(--border);
+        }
+        
+        .hero-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1.25rem;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.75rem 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 28px -6px rgba(0, 0, 0, 0.08);
+        }
+        [data-theme="dark"] .hero-card {
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 28px -6px rgba(0, 0, 0, 0.5);
+        }
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, rgba(0,0,0,0.02) 0%, transparent 55%), radial-gradient(ellipse at 70% 0%, rgba(0,0,0,0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        [data-theme="dark"] .hero-card::before {
+            background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, transparent 55%), radial-gradient(ellipse at 70% 0%, rgba(255,255,255,0.04) 0%, transparent 50%);
+        }
+        .hero-card > * {
+            position: relative;
+            z-index: 1;
+        }
+        .hero-label {
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        .hero-amount {
+            font-family: 'JetBrains Mono', 'Inter', monospace;
+            font-size: 2.5rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: var(--text);
+        }
+        .hero-amount.danger {
+            color: var(--danger);
+        }
+        .hero-meta {
+            margin-top: 0.75rem;
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hero-meta span b {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .day-group-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .day-group.open .day-group-body {
+            max-height: 800px;
+        }
+        .day-group.open .day-chevron {
+            transform: rotate(180deg);
+        }
+        .day-chevron {
+            transition: transform 0.25s ease;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen">
+
+    <!-- SPLASH / WELCOME SCREEN -->
+    <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 bg-neutral-950 transition-opacity duration-300">
+        <div class="w-full max-w-xs flex flex-col items-center">
+            <!-- 放大後的幼身空心圓角方形 Logo，使用柔和金黃色系 -->
+            <div class="w-16 h-16 rounded-2xl border-2 flex items-center justify-center mb-7 bg-neutral-900 shadow-sm" style="border-color: var(--gold-accent);">
+                <div class="w-9 h-9 border-2 rounded-lg" style="border-color: var(--gold-accent);"></div>
+            </div>
+
+            <!-- 登入表單區塊 (預設隱藏，點擊按鈕展開) -->
+            <div id="splash-auth-form" class="w-full space-y-3 mb-4 hidden">
+                <input type="email" id="splash-email" placeholder="電郵地址" class="w-full input-theme border border-theme rounded-xl px-3.5 py-2.5 text-xs">
+                <input type="password" id="splash-password" placeholder="密碼" class="w-full input-theme border border-theme rounded-xl px-3.5 py-2.5 text-xs">
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="splashLogin()" class="flex-1 py-2 rounded-xl text-xs font-medium btn-accent">登入</button>
+                    <button type="button" onclick="splashRegister()" class="flex-1 py-2 rounded-xl text-xs font-medium bar-track text-secondary border border-theme">註冊</button>
+                </div>
+                <button type="button" onclick="toggleSplashAuth(false)" class="w-full text-center text-[10px] text-muted mt-2">返回選擇模式</button>
+            </div>
+
+            <!-- 初始按鈕區塊 -->
+            <div id="splash-actions" class="w-full space-y-2.5">
+                <button onclick="toggleSplashAuth(true)" class="w-full py-2.5 px-4 rounded-xl text-xs font-medium btn-accent transition-colors shadow-sm">
+                    登入 / 註冊
+                </button>
+                <button onclick="enterGuestMode()" class="w-full py-2.5 px-4 rounded-xl text-xs font-medium bar-track text-secondary border border-theme hover:border-hover transition-colors">
+                    訪客模式
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="max-w-md mx-auto min-h-screen flex flex-col px-4 pt-3 pb-24 opacity-0 transition-opacity duration-300 pointer-events-none">
+        
+        <!-- Month Navigator -->
+        <div class="flex items-center justify-between mb-2 px-0.5">
+            <button onclick="changeMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-primary transition-colors">
+                <i class="fa-solid fa-chevron-left text-[10px]"></i>
+            </button>
+            <div class="text-center">
+                <div id="month-display" class="text-[12px] font-medium tracking-wide text-primary"></div>
+                <div id="month-status" class="text-[9px] text-faint mt-0.5 tracking-wide"></div>
+            </div>
+            <button onclick="changeMonth(1)" id="btn-next-month" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-primary transition-colors">
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+        </div>
+
+        <!-- Hero balance card -->
+        <header class="mb-3">
+            <div class="hero-card">
+                <div class="hero-label">本月餘額</div>
+                <div id="display-net" class="hero-amount">$0</div>
+                <div class="hero-meta">
+                    <span>人工 <b id="display-salary">$0</b></span>
+                    <span>·</span>
+                    <span>支出 <b id="display-outflow">$0</b></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1">
+            
+            <!-- DASHBOARD -->
+            <section id="view-dashboard" class="space-y-2.5">
+                
+                <div class="card rounded-xl px-4 py-3.5">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-[10px] text-muted block mb-1">日常開支</span>
+                            <span id="display-daily-total" class="text-base font-semibold tracking-tight text-primary font-mono">$0</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-muted block mb-1">固定開支</span>
+                            <span id="display-fixed-total" class="text-base font-semibold tracking-tight text-primary font-mono">$0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Month comparison -->
+                <div id="comparison-card" class="card rounded-xl px-4 py-3 hidden">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="label-caps">與上月比較</span>
+                        <span id="comparison-label" class="text-[11px] text-faint"></span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <div id="comparison-diff" class="text-lg font-medium tracking-tight"></div>
+                        <div id="comparison-pct" class="text-[12px] text-muted"></div>
+                    </div>
+                </div>
+
+                <!-- Category Breakdown -->
+                <div class="card rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3.5">
+                        <h3 class="text-[10px] text-muted">開支結構</h3>
+                        <span id="struct-month-label" class="text-[11px] text-faint"></span>
+                    </div>
+                    <div id="category-list" class="space-y-4"></div>
+                </div>
+
+                <!-- Lifetime summary -->
+                <div class="card rounded-xl px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-muted">累計總支出</span>
+                        <span id="lifetime-total" class="text-[13px] font-medium tracking-tight text-primary">$0</span>
+                    </div>
+                    <div class="divider-line my-3"></div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[12px] text-muted">已記錄月份</span>
+                        <span id="lifetime-months" class="text-[13px] font-medium text-primary">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DAILY -->
+            <section id="view-daily" class="hidden space-y-4">
+                <div class="flex items-end justify-between px-0.5">
+                    <div>
+                        <h2 class="text-sm font-semibold text-primary">日常開支</h2>
+                    </div>
+                </div>
+                <div id="daily-list" class="space-y-2.5"></div>
+            </section>
+
+            <!-- FIXED -->
+            <section id="view-fixed" class="hidden space-y-4">
+                <div class="flex items-end justify-between px-0.5">
+                    <div>
+                        <h2 class="text-sm font-semibold text-primary">固定開支</h2>
+                    </div>
+                </div>
+                <div id="fixed-list" class="space-y-2.5"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="bottom-bar fixed bottom-0 left-0 right-0 z-40">
+        <div class="max-w-md mx-auto flex items-center justify-between px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn flex-1 flex flex-col items-center gap-1 py-2 transition-colors tab-active">
+                <i class="fa-regular fa-circle text-[15px]"></i>
+                <span class="text-[10px] font-medium">總覽</span>
+            </button>
+            <button onclick="switchTab('daily')" id="tab-daily" class="tab-btn flex-1 flex flex-col items-center gap-1 py-2 text-muted transition-colors">
+                <svg class="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="13" height="13" rx="3.5" />
+                    <rect x="9" y="9" width="13" height="13" rx="3.5" />
+                </svg>
+                <span class="text-[10px] font-medium">日常</span>
+            </button>
+            <button onclick="openAdd()" class="relative -top-4 w-14 h-14 flex items-center justify-center btn-accent rounded-full active:scale-95 transition-transform shrink-0 mx-1 shadow-lg">
+                <i class="fa-solid fa-plus text-lg"></i>
+            </button>
+            <button onclick="switchTab('fixed')" id="tab-fixed" class="tab-btn flex-1 flex flex-col items-center gap-1 py-2 text-muted transition-colors">
+                <svg class="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+                </svg>
+                <span class="text-[10px] font-medium">固定</span>
+            </button>
+            <button onclick="openSettings()" class="flex-1 flex flex-col items-center gap-1 py-2 text-muted transition-colors">
+                <i class="fa-solid fa-bars text-[15px]"></i>
+                <span class="text-[10px] font-medium">設定</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Toast -->
+    <div id="toast" class="toast fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-xl flex items-center gap-2.5 pointer-events-none">
+        <span class="w-1.5 h-1.5 rounded-full bg-white shrink-0"></span>
+        <span id="toast-msg" class="text-xs font-medium"></span>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+        <div class="modal-panel w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-end mb-5">
+                <div class="flex items-center gap-1.5">
+                    <div class="flex items-center rounded-md border border-theme overflow-hidden">
+                        <button type="button" onclick="setTheme('dark')" id="theme-btn-dark"
+                            class="w-6 h-6 flex items-center justify-center text-[9px] transition-colors">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
+                        <button type="button" onclick="setTheme('light')" id="theme-btn-light"
+                            class="w-6 h-6 flex items-center justify-center text-[9px] transition-colors">
+                            <i class="fa-solid fa-sun"></i>
+                        </button>
+                    </div>
+                    <button onclick="closeSettings()" class="text-muted hover:text-primary transition-colors w-7 h-7 flex items-center justify-center"><i class="fa-solid fa-xmark text-sm"></i></button>
+                </div>
+            </div>
+            
+            <div id="settings-account" class="mb-5 p-3.5 card rounded-xl">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="text-[11px] text-muted mb-0.5">帳號</div>
+                        <div id="auth-user-email" class="text-xs font-medium text-primary truncate">訪客模式</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span id="auth-status-badge" class="text-[10px] px-2 py-0.5 rounded-full border border-theme text-faint">未登入</span>
+                        <button type="button" id="auth-logout" onclick="logoutFirebase()" class="hidden px-2.5 py-1 rounded-lg text-[10px] font-medium danger border border-theme">登出</button>
+                    </div>
+                </div>
+            </div>
+
+            <form onsubmit="saveSettings(event)" class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">每月固定人工 (HKD)</label>
+                    <input type="number" id="input-salary" min="0" step="any" required
+                        class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-base font-semibold text-primary font-mono focus:outline-none focus:border-theme transition-colors"
+                        placeholder="25000">
+                </div>
+                
+                <div class="pt-2 border-t border-theme">
+                    <p class="text-[11px] text-muted mb-3">備份與匯入</p>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="exportData()" class="flex-1 py-2.5 rounded-xl text-xs font-medium bar-track text-secondary border border-theme transition-colors">
+                            匯出 JSON
+                        </button>
+                        <button type="button" onclick="document.getElementById('import-file').click()" class="flex-1 py-2.5 rounded-xl text-xs font-medium bar-track text-secondary border border-theme transition-colors">
+                            匯入 JSON
+                        </button>
+                        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeSettings()" class="flex-1 py-2.5 rounded-xl text-xs font-medium bar-track text-secondary border border-theme transition-colors">取消</button>
+                    <button type="submit" class="flex-1 py-2.5 rounded-xl text-xs font-medium btn-accent transition-colors">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DAILY MODAL -->
+    <div id="daily-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+        <div class="modal-panel w-full max-w-md rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 id="daily-modal-title" class="text-sm font-semibold text-primary">記錄日常開支</h3>
+                <button onclick="closeDailyModal()" class="text-muted hover:text-primary transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveDaily(event)" class="space-y-3.5">
+                <input type="hidden" id="daily-edit-id">
+
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">日期</label>
+                    <input type="hidden" id="daily-date" required>
+                    <div class="card rounded-xl p-3">
+                        <div class="flex items-center justify-between mb-3">
+                            <button type="button" onclick="calChangeMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-primary transition-colors">
+                                <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                            </button>
+                            <span id="cal-month-label" class="text-xs font-semibold text-primary"></span>
+                            <button type="button" onclick="calChangeMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-primary transition-colors">
+                                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-0.5 mb-1">
+                            <div class="text-center text-[10px] text-faint py-1">日</div>
+                            <div class="text-center text-[10px] text-faint py-1">一</div>
+                            <div class="text-center text-[10px] text-faint py-1">二</div>
+                            <div class="text-center text-[10px] text-faint py-1">三</div>
+                            <div class="text-center text-[10px] text-faint py-1">四</div>
+                            <div class="text-center text-[10px] text-faint py-1">五</div>
+                            <div class="text-center text-[10px] text-faint py-1">六</div>
+                        </div>
+                        <div id="cal-grid" class="grid grid-cols-7 gap-0.5"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">類別</label>
+                    <select id="daily-category" class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors">
+                        <option value="飲食">飲食</option>
+                        <option value="交通">交通</option>
+                        <option value="購物">購物</option>
+                        <option value="娛樂">娛樂</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">金額</label>
+                    <input type="number" id="daily-amount" required min="0.01" step="any"
+                        class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-sm text-primary font-mono focus:outline-none focus:border-theme transition-colors"
+                        placeholder="55">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">備註 <span class="text-faint">(選填)</span></label>
+                    <input type="text" id="daily-note"
+                        class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors"
+                        placeholder="午餐茶餐廳">
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeDailyModal()" class="flex-1 py-2.5 rounded-xl text-xs font-medium bar-track text-secondary border border-theme transition-colors">取消</button>
+                    <button type="submit" class="flex-1 py-2.5 rounded-xl text-xs font-medium btn-accent transition-colors">確認</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FIXED MODAL -->
+    <div id="fixed-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+        <div class="modal-panel w-full max-w-md rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 id="fixed-modal-title" class="text-sm font-semibold text-primary">新增固定開支</h3>
+                <button onclick="closeFixedModal()" class="text-muted hover:text-primary transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveFixed(event)" class="space-y-3.5">
+                <input type="hidden" id="fixed-edit-id">
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">項目名稱</label>
+                    <input type="text" id="fixed-name" required
+                        class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors"
+                        placeholder="Netflix / 租金 / 寬頻">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-muted mb-1.5">金額</label>
+                        <input type="number" id="fixed-amount" required min="1" step="any"
+                            class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary font-mono focus:outline-none focus:border-theme transition-colors"
+                            placeholder="93">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-muted mb-1.5">週期</label>
+                        <select id="fixed-cycle" class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors">
+                            <option value="monthly">每月</option>
+                            <option value="yearly">每年</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-muted mb-1.5">下次扣款</label>
+                        <input type="date" id="fixed-date" required
+                            class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-muted mb-1.5">分類</label>
+                        <select id="fixed-category" class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors">
+                            <option value="串流娛樂">串流娛樂</option>
+                            <option value="軟體工具">軟體工具</option>
+                            <option value="居住水電">居住水電</option>
+                            <option value="保險其他">保險其他</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeFixedModal()" class="flex-1 py-2.5 rounded-xl text-xs font-medium bar-track text-secondary border border-theme transition-colors">取消</button>
+                    <button type="submit" class="flex-1 py-2.5 rounded-xl text-xs font-medium btn-accent transition-colors">確認</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxg3cDCjuu_onIjJzQ2aqc7bP9FVdXR-Y",
+            authDomain: "minimalist-ledger.firebaseapp.com",
+            projectId: "minimalist-ledger",
+            storageBucket: "minimalist-ledger.firebasestorage.app",
+            messagingSenderId: "907112204851",
+            appId: "1:907112204851:web:149072d3561a0fba96f146"
+        };
+
+        let currentUser = null;
+        let db = null;
+        let auth = null;
+
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            auth = firebase.auth();
+            db = firebase.firestore();
+
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                updateAuthUI();
+                if (user) {
+                    dismissSplash();
+                    loadFromCloud();
+                }
+            });
+        } catch(e) {
+            console.log('Firebase Init Note:', e);
+        }
+
+        const KEYS = {
+            daily: 'ml_v3_daily',
+            fixed: 'ml_v3_fixed',
+            salary: 'ml_v3_salary'
+        };
+
+        function offsetDate(days) {
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return d.toISOString().slice(0, 10);
+        }
+
+        const defaultDaily = [
+            { id: 'd1', amount: 55, category: '飲食', note: '午餐茶餐廳', date: offsetDate(0) },
+            { id: 'd2', amount: 12.5, category: '交通', note: '地鐵', date: offsetDate(0) },
+            { id: 'd3', amount: 280, category: '購物', note: '超市日用品', date: offsetDate(-1) }
+        ];
+
+        const defaultFixed = [
+            { id: 'f1', name: 'Netflix', amount: 93, cycle: 'monthly', nextDate: offsetDate(3), category: '串流娛樂' },
+            { id: 'f2', name: 'ChatGPT Plus', amount: 156, cycle: 'monthly', nextDate: offsetDate(6), category: '軟體工具' }
+        ];
+
+        let dailyExpenses = load(KEYS.daily) || defaultDaily;
+        let fixedExpenses = load(KEYS.fixed) || defaultFixed;
+        let monthlySalary = parseFloat(localStorage.getItem(KEYS.salary)) || 25000;
+        let currentTab = 'dashboard';
+        let viewYear, viewMonth;
+
+        function load(key) {
+            try {
+                const raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : null;
+            } catch { return null; }
+        }
+
+        function saveAll() {
+            localStorage.setItem(KEYS.daily, JSON.stringify(dailyExpenses));
+            localStorage.setItem(KEYS.fixed, JSON.stringify(fixedExpenses));
+            localStorage.setItem(KEYS.salary, monthlySalary);
+
+            if (currentUser && db) {
+                db.collection('users').doc(currentUser.uid).set({
+                    daily: dailyExpenses,
+                    fixed: fixedExpenses,
+                    salary: monthlySalary,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true }).catch(err => console.error("Cloud sync error:", err));
+            }
+        }
+
+        function loadFromCloud() {
+            if (!currentUser || !db) return;
+            db.collection('users').doc(currentUser.uid).get().then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.daily) dailyExpenses = data.daily;
+                    if (data.fixed) fixedExpenses = data.fixed;
+                    if (data.salary !== undefined) monthlySalary = data.salary;
+                    saveAll();
+                    render();
+                    showToast('已從雲端同步數據');
+                }
+            });
+        }
+
+        function updateAuthUI() {
+            const badge = document.getElementById('auth-status-badge');
+            const emailEl = document.getElementById('auth-user-email');
+            const logoutBtn = document.getElementById('auth-logout');
+
+            if (currentUser) {
+                if (badge) {
+                    badge.textContent = '已登入';
+                    badge.className = 'text-[10px] px-2 py-0.5 rounded-full border border-theme text-primary';
+                }
+                if (emailEl) emailEl.textContent = currentUser.email || '已登入';
+                if (logoutBtn) logoutBtn.classList.remove('hidden');
+            } else {
+                if (badge) {
+                    badge.textContent = '未登入';
+                    badge.className = 'text-[10px] px-2 py-0.5 rounded-full border border-theme text-faint';
+                }
+                if (emailEl) emailEl.textContent = '訪客模式';
+                if (logoutBtn) logoutBtn.classList.add('hidden');
+            }
+        }
+
+        function toggleSplashAuth(show) {
+            const actions = document.getElementById('splash-actions');
+            const form = document.getElementById('splash-auth-form');
+            if (show) {
+                actions.classList.add('hidden');
+                form.classList.remove('hidden');
+            } else {
+                actions.classList.remove('hidden');
+                form.classList.add('hidden');
+            }
+        }
+
+        function splashLogin() {
+            const email = document.getElementById('splash-email').value;
+            const pass = document.getElementById('splash-password').value;
+            if (!email || !pass) return showToast('請輸入電郵與密碼');
+
+            if (!auth) return showToast('Firebase 未初始化');
+            auth.signInWithEmailAndPassword(email, pass)
+                .then(() => {
+                    showToast('登入成功');
+                    dismissSplash();
+                })
+                .catch(err => showToast('登入失敗: ' + err.message));
+        }
+
+        function splashRegister() {
+            const email = document.getElementById('splash-email').value;
+            const pass = document.getElementById('splash-password').value;
+            if (!email || !pass) return showToast('請輸入電郵與密碼');
+
+            if (!auth) return showToast('Firebase 未初始化');
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then(() => {
+                    showToast('註冊成功');
+                    dismissSplash();
+                })
+                .catch(err => showToast('註冊失敗: ' + err.message));
+        }
+
+        function enterGuestMode() {
+            dismissSplash();
+        }
+
+        function dismissSplash() {
+            const splash = document.getElementById('splash-screen');
+            const app = document.getElementById('app-container');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.remove(), 300);
+            }
+            if (app) {
+                app.classList.remove('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function loginFirebase() {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-password').value;
+            if (!email || !pass) return showToast('請輸入電郵與密碼');
+
+            auth.signInWithEmailAndPassword(email, pass)
+                .then(() => showToast('登入成功'))
+                .catch(err => showToast('登入失敗: ' + err.message));
+        }
+
+        function registerFirebase() {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-password').value;
+            if (!email || !pass) return showToast('請輸入電郵與密碼');
+
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then(() => showToast('註冊成功並已登入'))
+                .catch(err => showToast('註冊失敗: ' + err.message));
+        }
+
+        function logoutFirebase() {
+            auth.signOut().then(() => {
+                showToast('已登出');
+                updateAuthUI();
+            });
+        }
+
+        function initViewMonth() {
+            const now = new Date();
+            viewYear = now.getFullYear();
+            viewMonth = now.getMonth();
+        }
+
+        function getViewYM() {
+            return `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
+        }
+
+        function isCurrentMonth() {
+            const now = new Date();
+            return viewYear === now.getFullYear() && viewMonth === now.getMonth();
+        }
+
+        function changeMonth(delta) {
+            const d = new Date(viewYear, viewMonth + delta, 1);
+            viewYear = d.getFullYear();
+            viewMonth = d.getMonth();
+            render();
+        }
+
+        function updateMonthUI() {
+            const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+            document.getElementById('month-display').textContent = `${viewYear} 年 ${months[viewMonth]}`;
+            document.getElementById('month-status').textContent = isCurrentMonth() ? '本月' : (viewYear > new Date().getFullYear() || (viewYear === new Date().getFullYear() && viewMonth > new Date().getMonth()) ? '未來預算' : '歷史月份');
+            
+            const nextBtn = document.getElementById('btn-next-month');
+            nextBtn.classList.remove('opacity-30', 'pointer-events-none');
+        }
+
+        function fmt(n) {
+            return Math.round(n).toLocaleString('en-HK');
+        }
+
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            el.classList.add('show');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+        }
+
+        function iconDaily(cat) {
+            return { '飲食':'fa-utensils', '交通':'fa-train-subway', '購物':'fa-bag-shopping', '娛樂':'fa-gamepad', '其他':'fa-receipt' }[cat] || 'fa-receipt';
+        }
+
+        function iconFixedItem(item) {
+            const name = (item.name || '').toLowerCase();
+            const brands = [
+                { k: ['netflix'], icon: 'fa-solid fa-n' },
+                { k: ['spotify'], icon: 'fa-brands fa-spotify' },
+                { k: ['youtube', 'yt '], icon: 'fa-brands fa-youtube' },
+                { k: ['apple'], icon: 'fa-brands fa-apple' },
+                { k: ['google', 'chatgpt', 'openai'], icon: 'fa-solid fa-robot' },
+            ];
+            for (const b of brands) {
+                if (b.k.some(key => name.includes(key))) return b.icon;
+            }
+            return 'fa-solid fa-receipt';
+        }
+
+        function getFixedMonthly() {
+            let total = 0;
+            fixedExpenses.forEach(item => {
+                const amt = parseFloat(item.amount) || 0;
+                total += item.cycle === 'monthly' ? amt : amt / 12;
+            });
+            return total;
+        }
+
+        function getDailyForMonth(ym) {
+            let total = 0;
+            const cats = { '飲食':0, '交通':0, '購物':0, '娛樂':0, '其他':0 };
+            dailyExpenses.forEach(item => {
+                if (item.date && item.date.startsWith(ym)) {
+                    const amt = parseFloat(item.amount) || 0;
+                    total += amt;
+                    if (cats[item.category] !== undefined) cats[item.category] += amt;
+                    else cats['其他'] += amt;
+                }
+            });
+            return { total, cats };
+        }
+
+        function getAllMonthKeys() {
+            const set = new Set();
+            dailyExpenses.forEach(item => {
+                if (item.date && item.date.length >= 7) set.add(item.date.slice(0, 7));
+            });
+            set.add(getViewYM());
+            return Array.from(set).sort();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            ['dashboard', 'daily', 'fixed'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const view = document.getElementById(`view-${t}`);
+                if (t === tab) {
+                    btn.classList.add('tab-active');
+                    btn.classList.remove('text-muted');
+                    view.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('text-muted');
+                    view.classList.add('hidden');
+                }
+            });
+            render();
+        }
+
+        function openAdd() {
+            if (currentTab === 'fixed') openFixedModal();
+            else openDailyModal();
+        }
+
+        function render() {
+            updateMonthUI();
+            document.getElementById('display-salary').textContent = `$${fmt(monthlySalary)}`;
+            renderDashboard();
+            renderDailyList();
+            renderFixedList();
+            saveAll();
+        }
+
+        function renderDashboard() {
+            const ym = getViewYM();
+            const fixedMonthly = getFixedMonthly();
+            const { total: dailyTotal, cats } = getDailyForMonth(ym);
+            const totalOut = fixedMonthly + dailyTotal;
+            const net = monthlySalary - totalOut;
+
+            document.getElementById('display-outflow').textContent = `$${fmt(totalOut)}`;
+            document.getElementById('display-fixed-total').textContent = `$${fmt(fixedMonthly)}`;
+            document.getElementById('display-daily-total').textContent = `$${fmt(dailyTotal)}`;
+            document.getElementById('struct-month-label').textContent = ym;
+
+            const netEl = document.getElementById('display-net');
+            netEl.textContent = (net < 0 ? '-$' : '$') + fmt(Math.abs(net));
+            netEl.className = `hero-amount ${net < 0 ? 'danger' : ''}`;
+
+            const prevDate = new Date(viewYear, viewMonth - 1, 1);
+            const prevYM = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+            const prevDaily = getDailyForMonth(prevYM).total;
+            const prevTotal = fixedMonthly + prevDaily;
+            const compCard = document.getElementById('comparison-card');
+
+            if (prevDaily > 0 || prevTotal > 0) {
+                compCard.classList.remove('hidden');
+                document.getElementById('comparison-label').textContent = prevYM;
+                const diff = totalOut - prevTotal;
+                const diffEl = document.getElementById('comparison-diff');
+                const pctEl = document.getElementById('comparison-pct');
+                if (diff > 0) {
+                    diffEl.textContent = `+$${fmt(diff)}`;
+                    diffEl.className = 'text-lg font-medium tracking-tight danger';
+                    pctEl.textContent = prevTotal > 0 ? `較上月多 ${Math.round((diff / prevTotal) * 100)}%` : '';
+                } else if (diff < 0) {
+                    diffEl.textContent = `-$${fmt(Math.abs(diff))}`;
+                    diffEl.className = 'text-lg font-medium tracking-tight success';
+                    pctEl.textContent = prevTotal > 0 ? `較上月少 ${Math.round((Math.abs(diff) / prevTotal) * 100)}%` : '';
+                } else {
+                    diffEl.textContent = '持平';
+                    diffEl.className = 'text-lg font-medium tracking-tight text-secondary';
+                    pctEl.textContent = '';
+                }
+            } else {
+                compCard.classList.add('hidden');
+            }
+
+            const grand = totalOut > 0 ? totalOut : 1;
+            const container = document.getElementById('category-list');
+            container.innerHTML = '';
+            
+            const detailedCats = { '飲食': cats['飲食'], '交通': cats['交通'], '購物': cats['購物'], '娛樂': cats['娛樂'], '其他': cats['其他'], '固定開支': fixedMonthly };
+            Object.entries(detailedCats).forEach(([cat, val], i) => {
+                if (val <= 0) return;
+                const pct = Math.round((val / grand) * 100);
+                const row = document.createElement('div');
+                row.className = 'card-enter space-y-1.5';
+                row.style.animationDelay = `${i * 35}ms`;
+                row.innerHTML = `
+                    <div class="flex justify-between items-baseline text-[12px]">
+                        <span class="text-secondary">${cat}</span>
+                        <span class="text-primary tracking-tight">$${fmt(val)} <span class="text-faint text-[11px]">${pct}%</span></span>
+                    </div>
+                    <div class="h-[3px] bar-track rounded-full overflow-hidden">
+                        <div class="bar-fill h-full bar-fill-theme rounded-full" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+
+            let lifetime = 0;
+            const allKeys = getAllMonthKeys();
+            allKeys.forEach(k => {
+                lifetime += getDailyForMonth(k).total + fixedMonthly;
+            });
+            document.getElementById('lifetime-total').textContent = `$${fmt(lifetime)}`;
+            document.getElementById('lifetime-months').textContent = allKeys.length;
+        }
+
+        function toggleDayGroup(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('open');
+        }
+
+        function renderDailyList() {
+            const container = document.getElementById('daily-list');
+            container.innerHTML = '';
+            const ym = getViewYM();
+            const filtered = dailyExpenses.filter(item => item.date && item.date.startsWith(ym));
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 border border-dashed border-theme rounded-2xl">
+                        <div class="text-faint text-2xl mb-2">◼</div>
+                        <p class="text-xs text-muted">此月份尚未有日常記錄</p>
+                    </div>`;
+                return;
+            }
+
+            const groups = {};
+            filtered.forEach(item => {
+                if (!groups[item.date]) groups[item.date] = [];
+                groups[item.date].push(item);
+            });
+
+            const dates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+
+            dates.forEach((date, i) => {
+                const items = groups[date].sort((a, b) => b.amount - a.amount);
+                const dayTotal = items.reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+                const d = new Date(date + 'T00:00:00');
+                const label = `${date.slice(8)} 日（週${weekdays[d.getDay()]}）`;
+                const groupId = `day-${date}`;
+                const isToday = date === offsetDate(0);
+                const openClass = (isToday || i === 0) ? ' open' : '';
+
+                const group = document.createElement('div');
+                group.id = groupId;
+                group.className = `day-group card rounded-xl overflow-hidden card-enter${openClass}`;
+                group.style.animationDelay = `${i * 30}ms`;
+
+                const itemsHtml = items.map(item => `
+                    <div class="flex items-center gap-3 px-3.5 py-2.5 border-t border-theme">
+                        <div class="w-8 h-8 rounded-lg icon-box flex items-center justify-center shrink-0">
+                            <i class="fa-solid ${iconDaily(item.category)} text-[10px]"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-medium text-primary truncate">${item.note || item.category}</div>
+                            <div class="text-[10px] text-muted mt-0.5">${item.category}</div>
+                        </div>
+                        <span class="text-[13px] font-medium tracking-tight text-primary shrink-0">-$${fmt(item.amount)}</span>
+                        <button onclick="event.stopPropagation(); editDaily('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:text-primary transition-colors rounded-lg shrink-0">
+                            <i class="fa-solid fa-pen text-[10px]"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteDaily('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:danger transition-colors rounded-lg shrink-0">
+                            <i class="fa-solid fa-trash-can text-[10px]"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                group.innerHTML = `
+                    <button type="button" onclick="toggleDayGroup('${groupId}')"
+                        class="w-full flex items-center gap-3 px-3.5 py-3.5 text-left hover:opacity-90 transition-opacity">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-medium text-primary">${label}</div>
+                        </div>
+                        <span class="text-[14px] font-semibold tracking-tight text-primary font-mono">-$${fmt(dayTotal)}</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-muted day-chevron ml-1"></i>
+                    </button>
+                    <div class="day-group-body">${itemsHtml}</div>
+                `;
+                container.appendChild(group);
+            });
+        }
+
+        function renderFixedList() {
+            const container = document.getElementById('fixed-list');
+            container.innerHTML = '';
+
+            if (fixedExpenses.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 border border-dashed border-theme rounded-2xl">
+                        <div class="text-faint text-2xl mb-2">◼</div>
+                        <p class="text-xs text-muted">尚未有固定開支</p>
+                    </div>`;
+                return;
+            }
+
+            const sorted = [...fixedExpenses].sort((a, b) => new Date(a.nextDate) - new Date(b.nextDate));
+            sorted.forEach((item, i) => {
+                const cycleLabel = item.cycle === 'monthly' ? '每月' : '每年';
+                const card = document.createElement('div');
+                card.className = 'card-enter card rounded-xl p-3.5 border-hover flex items-center gap-3 transition-colors';
+                card.style.animationDelay = `${i * 25}ms`;
+                const iconClass = iconFixedItem(item);
+                card.innerHTML = `
+                    <div class="w-10 h-10 rounded-[11px] icon-box flex items-center justify-center shrink-0">
+                        <i class="${iconClass} text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-primary truncate">${item.name}</div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <div class="text-right mr-1">
+                            <div class="text-[13px] font-medium tracking-tight text-primary">$${fmt(item.amount)}</div>
+                            <div class="text-[10px] text-muted">/ ${cycleLabel}</div>
+                        </div>
+                        <button onclick="editFixed('${item.id}')" class="w-8 h-8 flex items-center justify-center text-muted hover:text-primary transition-colors rounded-lg">
+                            <i class="fa-solid fa-pen text-[10px]"></i>
+                        </button>
+                        <button onclick="deleteFixed('${item.id}')" class="w-8 h-8 flex items-center justify-center text-muted hover:danger transition-colors rounded-lg">
+                            <i class="fa-solid fa-trash-can text-[10px]"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('ml_theme', theme);
+            updateThemeButtons();
+        }
+
+        function updateThemeButtons() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            const darkBtn = document.getElementById('theme-btn-dark');
+            const lightBtn = document.getElementById('theme-btn-light');
+            if (!darkBtn || !lightBtn) return;
+            const base = 'w-6 h-6 flex items-center justify-center text-[9px] transition-colors';
+            if (current === 'dark') {
+                darkBtn.className = base + ' btn-accent';
+                lightBtn.className = base + ' text-muted';
+            } else {
+                lightBtn.className = base + ' btn-accent';
+                darkBtn.className = base + ' text-muted';
+            }
+        }
+
+        function openSettings() {
+            document.getElementById('input-salary').value = monthlySalary;
+            updateThemeButtons();
+            updateAuthUI();
+            document.getElementById('settings-modal').classList.add('open');
+        }
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('open');
+        }
+        function saveSettings(e) {
+            e.preventDefault();
+            monthlySalary = parseFloat(document.getElementById('input-salary').value) || 0;
+            closeSettings();
+            render();
+            showToast('已更新人工設定');
+        }
+
+        function exportData() {
+            const payload = {
+                version: 3,
+                exportedAt: new Date().toISOString(),
+                salary: monthlySalary,
+                daily: dailyExpenses,
+                fixed: fixedExpenses
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `monochrome-ledger-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('已匯出資料');
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (data.daily) dailyExpenses = data.daily;
+                    if (data.fixed) fixedExpenses = data.fixed;
+                    if (data.salary !== undefined) monthlySalary = parseFloat(data.salary) || 0;
+                    saveAll();
+                    render();
+                    showToast('匯入成功');
+                } catch {
+                    showToast('匯入失敗，檔案格式錯誤');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        let calYear, calMonth;
+        let calSelected = null;
+
+        function calChangeMonth(delta) {
+            const d = new Date(calYear, calMonth + delta, 1);
+            calYear = d.getFullYear();
+            calMonth = d.getMonth();
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const label = document.getElementById('cal-month-label');
+            const grid = document.getElementById('cal-grid');
+            if (!label || !grid) return;
+
+            const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+            label.textContent = `${calYear} 年 ${months[calMonth]}`;
+
+            const firstDay = new Date(calYear, calMonth, 1).getDay();
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            const todayStr = offsetDate(0);
+
+            grid.innerHTML = '';
+
+            for (let i = 0; i < firstDay; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'aspect-square';
+                grid.appendChild(cell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const cell = document.createElement('button');
+                cell.type = 'button';
+                const isSelected = calSelected === dateStr;
+                const isToday = dateStr === todayStr;
+
+                let cls = 'cal-day aspect-square rounded-lg text-xs font-medium transition-colors flex items-center justify-center';
+                if (isSelected) cls += ' selected';
+                else if (isToday) cls += ' today';
+
+                cell.className = cls;
+                cell.textContent = day;
+                cell.onclick = () => selectCalDate(dateStr);
+                grid.appendChild(cell);
+            }
+        }
+
+        function selectCalDate(dateStr) {
+            calSelected = dateStr;
+            document.getElementById('daily-date').value = dateStr;
+            renderCalendar();
+        }
+
+        function openDailyModal(editItem = null) {
+            const title = document.getElementById('daily-modal-title');
+            document.getElementById('daily-modal').querySelector('form').reset();
+            document.getElementById('daily-edit-id').value = '';
+
+            if (editItem) {
+                title.textContent = '編輯日常開支';
+                document.getElementById('daily-edit-id').value = editItem.id;
+                document.getElementById('daily-amount').value = editItem.amount;
+                document.getElementById('daily-category').value = editItem.category;
+                document.getElementById('daily-note').value = editItem.note || '';
+                calSelected = editItem.date;
+            } else {
+                title.textContent = '記錄日常開支';
+                const defaultDay = isCurrentMonth() ? offsetDate(0) : `${getViewYM()}-01`;
+                calSelected = defaultDay;
+            }
+
+            const parts = calSelected.split('-');
+            calYear = parseInt(parts[0], 10);
+            calMonth = parseInt(parts[1], 10) - 1;
+            document.getElementById('daily-date').value = calSelected;
+            renderCalendar();
+
+            document.getElementById('daily-modal').classList.add('open');
+        }
+        function closeDailyModal() {
+            document.getElementById('daily-modal').classList.remove('open');
+        }
+        function saveDaily(e) {
+            e.preventDefault();
+            const id = document.getElementById('daily-edit-id').value;
+            const data = {
+                id: id || Date.now().toString(),
+                amount: parseFloat(document.getElementById('daily-amount').value),
+                category: document.getElementById('daily-category').value,
+                date: document.getElementById('daily-date').value,
+                note: document.getElementById('daily-note').value.trim()
+            };
+
+            if (id) {
+                const idx = dailyExpenses.findIndex(x => x.id === id);
+                if (idx !== -1) dailyExpenses[idx] = data;
+                showToast('已更新');
+            } else {
+                dailyExpenses.push(data);
+                showToast('已記錄');
+            }
+            closeDailyModal();
+            render();
+        }
+        function editDaily(id) {
+            const item = dailyExpenses.find(x => x.id === id);
+            if (item) openDailyModal(item);
+        }
+        function deleteDaily(id) {
+            dailyExpenses = dailyExpenses.filter(x => x.id !== id);
+            render();
+            showToast('已刪除');
+        }
+
+        function openFixedModal(editItem = null) {
+            const title = document.getElementById('fixed-modal-title');
+            document.getElementById('fixed-modal').querySelector('form').reset();
+            document.getElementById('fixed-edit-id').value = '';
+
+            if (editItem) {
+                title.textContent = '編輯固定開支';
+                document.getElementById('fixed-edit-id').value = editItem.id;
+                document.getElementById('fixed-name').value = editItem.name;
+                document.getElementById('fixed-amount').value = editItem.amount;
+                document.getElementById('fixed-cycle').value = editItem.cycle;
+                document.getElementById('fixed-date').value = editItem.nextDate;
+                document.getElementById('fixed-category').value = editItem.category;
+            } else {
+                title.textContent = '新增固定開支';
+                document.getElementById('fixed-date').value = offsetDate(0);
+            }
+            document.getElementById('fixed-modal').classList.add('open');
+        }
+        function closeFixedModal() {
+            document.getElementById('fixed-modal').classList.remove('open');
+        }
+        function saveFixed(e) {
+            e.preventDefault();
+            const id = document.getElementById('fixed-edit-id').value;
+            const data = {
+                id: id || Date.now().toString(),
+                name: document.getElementById('fixed-name').value.trim(),
+                amount: parseFloat(document.getElementById('fixed-amount').value),
+                cycle: document.getElementById('fixed-cycle').value,
+                nextDate: document.getElementById('fixed-date').value,
+                category: document.getElementById('fixed-category').value
+            };
+
+            if (id) {
+                const idx = fixedExpenses.findIndex(x => x.id === id);
+                if (idx !== -1) fixedExpenses[idx] = data;
+                showToast('已更新');
+            } else {
+                fixedExpenses.push(data);
+                showToast(`已新增：${data.name}`);
+            }
+            closeFixedModal();
+            render();
+        }
+        function editFixed(id) {
+            const item = fixedExpenses.find(x => x.id === id);
+            if (item) openFixedModal(item);
+        }
+        function deleteFixed(id) {
+            fixedExpenses = fixedExpenses.filter(x => x.id !== id);
+            render();
+            showToast('已刪除');
+        }
+
+        window.onload = () => {
+            initViewMonth();
+            updateThemeButtons();
+            render();
+        };
+
+        ['settings-modal', 'daily-modal', 'fixed-modal'].forEach(id => {
+            document.getElementById(id).addEventListener('click', e => {
+                if (e.target.id === id) document.getElementById(id).classList.remove('open');
+            });
+        });
+    </script>
+</body>
+</html>
