@@ -416,20 +416,30 @@
             </section>
 
             <!-- DAILY -->
-            <section id="view-daily" class="hidden space-y-4">
-                <div class="flex items-end justify-between px-0.5">
-                    <div>
-                        <h2 class="text-sm font-semibold text-primary">日常開支</h2>
+            <section id="view-daily" class="hidden space-y-3">
+                <div class="px-0.5">
+                    <h2 class="text-sm font-semibold text-primary mb-2.5">日常開支</h2>
+                    <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-2">
+                        <i class="fa-solid fa-magnifying-glass text-[10px] text-faint shrink-0"></i>
+                        <input type="search" id="daily-search" enterkeyhint="search" autocomplete="off"
+                            oninput="renderDailyList()"
+                            class="flex-1 bg-transparent border-0 text-xs text-primary focus:outline-none placeholder:text-faint"
+                            placeholder="搜尋備註、類別…">
                     </div>
                 </div>
                 <div id="daily-list" class="space-y-2.5"></div>
             </section>
 
             <!-- FIXED -->
-            <section id="view-fixed" class="hidden space-y-4">
-                <div class="flex items-end justify-between px-0.5">
-                    <div>
-                        <h2 class="text-sm font-semibold text-primary">固定開支</h2>
+            <section id="view-fixed" class="hidden space-y-3">
+                <div class="px-0.5">
+                    <h2 class="text-sm font-semibold text-primary mb-2.5">固定開支</h2>
+                    <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-2">
+                        <i class="fa-solid fa-magnifying-glass text-[10px] text-faint shrink-0"></i>
+                        <input type="search" id="fixed-search" enterkeyhint="search" autocomplete="off"
+                            oninput="renderFixedList()"
+                            class="flex-1 bg-transparent border-0 text-xs text-primary focus:outline-none placeholder:text-faint"
+                            placeholder="搜尋名稱、類別…">
                     </div>
                 </div>
                 <div id="fixed-list" class="space-y-2.5"></div>
@@ -508,10 +518,19 @@
 
             <form onsubmit="saveSettings(event)" class="space-y-4">
                 <div>
-                    <label class="block text-[11px] font-medium text-muted mb-1.5">每月固定人工 (HKD)</label>
-                    <input type="number" id="input-salary" min="0" step="any" required
-                        class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-base font-semibold text-primary font-mono focus:outline-none focus:border-theme transition-colors"
-                        placeholder="0">
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">每月固定人工</label>
+                    <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-1">
+                        <input type="number" id="input-salary" min="0" step="any" required
+                            class="flex-1 bg-transparent border-0 py-2 text-base font-semibold text-primary font-mono focus:outline-none"
+                            placeholder="0">
+                        <select id="input-currency" class="bg-transparent border-0 text-[11px] text-muted font-medium focus:outline-none shrink-0 py-2 pl-1">
+                            <option value="HKD">HKD</option>
+                            <option value="USD">USD</option>
+                            <option value="JPY">JPY</option>
+                            <option value="TWD">TWD</option>
+                        </select>
+                    </div>
+                    <div id="fx-rate-hint" class="text-[10px] text-faint mt-1.5"></div>
                 </div>
                 
                 <div class="pt-2 border-t border-theme">
@@ -587,9 +606,17 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-muted mb-1.5">金額</label>
-                    <input type="number" id="daily-amount" required min="0.01" step="any"
-                        class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-sm text-primary font-mono focus:outline-none focus:border-theme transition-colors"
-                        placeholder="0">
+                    <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-1">
+                        <input type="number" id="daily-amount" required min="0.01" step="any"
+                            class="flex-1 bg-transparent border-0 py-2 text-sm text-primary font-mono focus:outline-none"
+                            placeholder="0">
+                        <select id="daily-currency" class="bg-transparent border-0 text-[11px] text-muted font-medium focus:outline-none shrink-0 py-2 pl-1">
+                            <option value="HKD">HKD</option>
+                            <option value="USD">USD</option>
+                            <option value="JPY">JPY</option>
+                            <option value="TWD">TWD</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>
@@ -652,6 +679,8 @@
                         <option value="訂閱">訂閱</option>
                         <option value="保險">保險</option>
                         <option value="車務">車務</option>
+                        <option value="稅務">稅務</option>
+                        <option value="其他">其他</option>
                     </select>
                 </div>
 
@@ -662,12 +691,20 @@
                         placeholder="項目名稱">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
                         <label class="block text-[11px] font-medium text-muted mb-1.5">金額</label>
-                        <input type="number" id="fixed-amount" required min="1" step="any"
-                            class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary font-mono focus:outline-none focus:border-theme transition-colors"
-                            placeholder="0">
+                        <div class="flex items-center gap-1 input-theme border border-theme rounded-xl px-2.5 py-1">
+                            <input type="number" id="fixed-amount" required min="0.01" step="any"
+                                class="flex-1 min-w-0 bg-transparent border-0 py-2 text-sm text-primary font-mono focus:outline-none"
+                                placeholder="0">
+                            <select id="fixed-currency" class="bg-transparent border-0 text-[11px] text-muted font-medium focus:outline-none shrink-0 py-2">
+                                <option value="HKD">HKD</option>
+                                <option value="USD">USD</option>
+                                <option value="JPY">JPY</option>
+                                <option value="TWD">TWD</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted mb-1.5">週期</label>
@@ -723,7 +760,15 @@
         const KEYS = {
             daily: 'ml_v3_daily',
             fixed: 'ml_v3_fixed',
-            salary: 'ml_v3_salary'
+            salary: 'ml_v3_salary',
+            currency: 'ml_v3_currency'
+        };
+
+        const CURRENCY_META = {
+            HKD: { symbol: 'HK$', locale: 'en-HK', code: 'HKD' },
+            USD: { symbol: 'US$', locale: 'en-US', code: 'USD' },
+            JPY: { symbol: '¥', locale: 'ja-JP', code: 'JPY' },
+            TWD: { symbol: 'NT$', locale: 'en-US', code: 'TWD' }
         };
 
         function offsetDate(days) {
@@ -739,6 +784,8 @@
         let dailyExpenses = load(KEYS.daily) || defaultDaily;
         let fixedExpenses = load(KEYS.fixed) || defaultFixed;
         let monthlySalary = parseFloat(localStorage.getItem(KEYS.salary)) || 0;
+        let currentCurrency = localStorage.getItem(KEYS.currency) || 'HKD';
+        let fxRates = { HKD: 1 }; // base HKD
         let currentTab = 'dashboard';
         let viewYear, viewMonth;
 
@@ -753,12 +800,14 @@
             localStorage.setItem(KEYS.daily, JSON.stringify(dailyExpenses));
             localStorage.setItem(KEYS.fixed, JSON.stringify(fixedExpenses));
             localStorage.setItem(KEYS.salary, monthlySalary);
+            localStorage.setItem(KEYS.currency, currentCurrency);
 
             if (currentUser && db) {
                 db.collection('users').doc(currentUser.uid).set({
                     daily: dailyExpenses,
                     fixed: fixedExpenses,
                     salary: monthlySalary,
+                    currency: currentCurrency,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true }).catch(err => console.error("Cloud sync error:", err));
             }
@@ -772,6 +821,7 @@
                     if (data.daily) dailyExpenses = data.daily;
                     if (data.fixed) fixedExpenses = data.fixed;
                     if (data.salary !== undefined) monthlySalary = data.salary;
+                    if (data.currency) currentCurrency = data.currency;
                     saveAll();
                     render();
                     showToast('已從雲端同步數據');
@@ -909,7 +959,73 @@
         }
 
         function fmt(n) {
-            return Math.round(n).toLocaleString('en-HK');
+            const meta = CURRENCY_META[currentCurrency] || CURRENCY_META.HKD;
+            const digits = currentCurrency === 'JPY' ? 0 : (Math.abs(n) % 1 === 0 ? 0 : 2);
+            return Number(n || 0).toLocaleString(meta.locale, {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: currentCurrency === 'JPY' ? 0 : 2
+            });
+        }
+
+        function money(n, opts = {}) {
+            const cur = opts.currency || currentCurrency;
+            const meta = CURRENCY_META[cur] || CURRENCY_META.HKD;
+            const abs = Math.abs(Number(n) || 0);
+            const sign = n < 0 || opts.neg ? '-' : (opts.plus && n > 0 ? '+' : '');
+            const digits = cur === 'JPY' ? 0 : (abs % 1 === 0 ? 0 : 2);
+            const num = abs.toLocaleString(meta.locale, {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: cur === 'JPY' ? 0 : 2
+            });
+            return `${sign}${meta.symbol}${num}`;
+        }
+
+        // Convert amount in itemCurrency → book (currentCurrency) using HKD-based rates
+        function toBook(amount, itemCurrency) {
+            const from = itemCurrency || currentCurrency;
+            const to = currentCurrency;
+            if (from === to) return Number(amount) || 0;
+            const fromRate = fxRates[from] || 1; // HKD per 1 unit
+            const toRate = fxRates[to] || 1;
+            return (Number(amount) || 0) * fromRate / toRate;
+        }
+
+        async function fetchFxRates() {
+            const hint = document.getElementById('fx-rate-hint');
+            try {
+                // Free API, base USD then map — use frankfurter (ECB)
+                const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=HKD,JPY,TWD');
+                if (!res.ok) throw new Error('fx http');
+                const data = await res.json();
+                const usdToHkd = data.rates.HKD;
+                // Store as "1 unit of currency in HKD" for reference
+                fxRates = {
+                    USD: usdToHkd,
+                    HKD: 1,
+                    JPY: usdToHkd / data.rates.JPY,
+                    TWD: data.rates.TWD ? (usdToHkd / data.rates.TWD) : null
+                };
+                // Frankfurter may not have TWD — fallback static approx
+                if (!data.rates.TWD) fxRates.TWD = 0.24; // ~1 TWD ≈ 0.24 HKD rough
+                updateFxHint();
+            } catch (e) {
+                fxRates = { HKD: 1, USD: 7.8, JPY: 0.052, TWD: 0.24 };
+                if (hint) hint.textContent = '參考匯率暫用估算（未能連線）';
+            }
+        }
+
+        function updateFxHint() {
+            const hint = document.getElementById('fx-rate-hint');
+            if (!hint) return;
+            if (currentCurrency === 'HKD') {
+                hint.textContent = fxRates.USD
+                    ? `參考：1 USD ≈ ${Number(fxRates.USD).toFixed(2)} HKD`
+                    : '';
+                return;
+            }
+            const r = fxRates[currentCurrency];
+            if (r) hint.textContent = `參考：1 ${currentCurrency} ≈ ${Number(r).toFixed(currentCurrency === 'JPY' ? 4 : 2)} HKD`;
+            else hint.textContent = '';
         }
 
         function showToast(msg) {
@@ -942,7 +1058,9 @@
                 '通訊': 'fa-solid fa-wifi',
                 '訂閱': 'fa-solid fa-film',
                 '保險': 'fa-solid fa-shield-halved',
-                '車務': 'fa-solid fa-car'
+                '車務': 'fa-solid fa-car',
+                '稅務': 'fa-solid fa-file-invoice-dollar',
+                '其他': 'fa-solid fa-receipt'
             };
 
             const name = (item.name || '').toLowerCase();
@@ -962,7 +1080,7 @@
         function getFixedMonthly() {
             let total = 0;
             fixedExpenses.forEach(item => {
-                const amt = parseFloat(item.amount) || 0;
+                const amt = toBook(item.amount, item.currency);
                 total += item.cycle === 'monthly' ? amt : amt / 12;
             });
             return total;
@@ -973,7 +1091,7 @@
             const cats = { '餐飲':0, '交通':0, '食材':0, '日用':0, '購物':0, '娛樂':0, '醫療':0, '雜項':0 };
             dailyExpenses.forEach(item => {
                 if (item.date && item.date.startsWith(ym)) {
-                    const amt = parseFloat(item.amount) || 0;
+                    const amt = toBook(item.amount, item.currency);
                     total += amt;
                     if (cats[item.category] !== undefined) cats[item.category] += amt;
                     else cats['雜項'] += amt;
@@ -1016,7 +1134,7 @@
 
         function render() {
             updateMonthUI();
-            document.getElementById('display-salary').textContent = `$${fmt(monthlySalary)}`;
+            document.getElementById('display-salary').textContent = money(monthlySalary);
             renderDashboard();
             renderDailyList();
             renderFixedList();
@@ -1030,13 +1148,13 @@
             const totalOut = fixedMonthly + dailyTotal;
             const net = monthlySalary - totalOut;
 
-            document.getElementById('display-outflow').textContent = `$${fmt(totalOut)}`;
-            document.getElementById('display-fixed-total').textContent = `$${fmt(fixedMonthly)}`;
-            document.getElementById('display-daily-total').textContent = `$${fmt(dailyTotal)}`;
+            document.getElementById('display-outflow').textContent = money(totalOut);
+            document.getElementById('display-fixed-total').textContent = money(fixedMonthly);
+            document.getElementById('display-daily-total').textContent = money(dailyTotal);
             document.getElementById('struct-month-label').textContent = ym;
 
             const netEl = document.getElementById('display-net');
-            netEl.textContent = (net < 0 ? '-$' : '$') + fmt(Math.abs(net));
+            netEl.textContent = money(net);
             netEl.className = `hero-amount ${net < 0 ? 'danger' : ''}`;
 
             const prevDate = new Date(viewYear, viewMonth - 1, 1);
@@ -1052,11 +1170,11 @@
                 const diffEl = document.getElementById('comparison-diff');
                 const pctEl = document.getElementById('comparison-pct');
                 if (diff > 0) {
-                    diffEl.textContent = `+$${fmt(diff)}`;
+                    diffEl.textContent = money(diff, { plus: true });
                     diffEl.className = 'text-lg font-medium tracking-tight gold-highlight';
                     pctEl.textContent = prevTotal > 0 ? `較上月多 ${Math.round((diff / prevTotal) * 100)}%` : '';
                 } else if (diff < 0) {
-                    diffEl.textContent = `-$${fmt(Math.abs(diff))}`;
+                    diffEl.textContent = money(-Math.abs(diff));
                     diffEl.className = 'text-lg font-medium tracking-tight gold-highlight';
                     pctEl.textContent = prevTotal > 0 ? `較上月少 ${Math.round((Math.abs(diff) / prevTotal) * 100)}%` : '';
                 } else {
@@ -1082,7 +1200,7 @@
                 row.innerHTML = `
                     <div class="flex justify-between items-baseline text-[12px]">
                         <span class="text-secondary">${cat}</span>
-                        <span class="text-primary tracking-tight">$${fmt(val)} <span class="text-faint text-[11px]">${pct}%</span></span>
+                        <span class="text-primary tracking-tight">${money(val)} <span class="text-faint text-[11px]">${pct}%</span></span>
                     </div>
                     <div class="h-[3px] bar-track rounded-full overflow-hidden">
                         <div class="bar-fill h-full bar-fill-theme rounded-full" style="width: ${pct}%"></div>
@@ -1096,7 +1214,7 @@
             allKeys.forEach(k => {
                 lifetime += getDailyForMonth(k).total + fixedMonthly;
             });
-            document.getElementById('lifetime-total').textContent = `$${fmt(lifetime)}`;
+            document.getElementById('lifetime-total').textContent = money(lifetime);
             document.getElementById('lifetime-months').textContent = allKeys.length;
         }
 
@@ -1109,13 +1227,21 @@
             const container = document.getElementById('daily-list');
             container.innerHTML = '';
             const ym = getViewYM();
-            const filtered = dailyExpenses.filter(item => item.date && item.date.startsWith(ym));
+            const q = (document.getElementById('daily-search')?.value || '').trim().toLowerCase();
+            let filtered = dailyExpenses.filter(item => item.date && item.date.startsWith(ym));
+            if (q) {
+                filtered = filtered.filter(item => {
+                    const hay = [item.note, item.category, item.amount, item.currency, item.date]
+                        .map(x => String(x || '').toLowerCase()).join(' ');
+                    return hay.includes(q);
+                });
+            }
             
             if (filtered.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-16 border border-dashed border-theme rounded-2xl">
                         <div class="text-faint text-2xl mb-2">◼</div>
-                        <p class="text-xs text-muted">此月份尚未有日常記錄</p>
+                        <p class="text-xs text-muted">${q ? '找不到符合的記錄' : '此月份尚未有日常記錄'}</p>
                     </div>`;
                 return;
             }
@@ -1131,12 +1257,12 @@
 
             dates.forEach((date, i) => {
                 const items = groups[date].sort((a, b) => b.amount - a.amount);
-                const dayTotal = items.reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+                const dayTotal = items.reduce((s, x) => s + toBook(x.amount, x.currency), 0);
                 const d = new Date(date + 'T00:00:00');
                 const label = `${date.slice(8)} 日（週${weekdays[d.getDay()]}）`;
                 const groupId = `day-${date}`;
                 const isToday = date === offsetDate(0);
-                const openClass = (isToday || i === 0) ? ' open' : '';
+                const openClass = (q || isToday || i === 0) ? ' open' : '';
 
                 const group = document.createElement('div');
                 group.id = groupId;
@@ -1152,7 +1278,7 @@
                             <div class="text-[13px] font-medium text-primary truncate">${item.note || item.category}</div>
                             <div class="text-[10px] text-muted mt-0.5">${item.category}</div>
                         </div>
-                        <span class="text-[13px] font-medium tracking-tight text-primary shrink-0">-$${fmt(item.amount)}</span>
+                        <span class="text-[13px] font-medium tracking-tight text-primary shrink-0">${money(item.amount, { neg: true, currency: item.currency || currentCurrency })}</span>
                         <button onclick="event.stopPropagation(); editDaily('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:text-primary transition-colors rounded-lg shrink-0">
                             <i class="fa-solid fa-pen text-[10px]"></i>
                         </button>
@@ -1168,7 +1294,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="text-[13px] font-medium text-primary">${label}</div>
                         </div>
-                        <span class="text-[14px] font-semibold tracking-tight text-primary font-mono">-$${fmt(dayTotal)}</span>
+                        <span class="text-[14px] font-semibold tracking-tight text-primary font-mono">${money(dayTotal, { neg: true })}</span>
                         <i class="fa-solid fa-chevron-down text-[10px] text-muted day-chevron ml-1"></i>
                     </button>
                     <div class="day-group-body">${itemsHtml}</div>
@@ -1181,13 +1307,21 @@
             const container = document.getElementById('fixed-list');
             container.innerHTML = '';
             const ym = getViewYM();
-            const filtered = fixedExpenses.filter(item => item.date && item.date.startsWith(ym));
+            const q = (document.getElementById('fixed-search')?.value || '').trim().toLowerCase();
+            let filtered = fixedExpenses.filter(item => item.date && item.date.startsWith(ym));
+            if (q) {
+                filtered = filtered.filter(item => {
+                    const hay = [item.name, item.category, item.amount, item.currency, item.cycle, item.date]
+                        .map(x => String(x || '').toLowerCase()).join(' ');
+                    return hay.includes(q);
+                });
+            }
 
             if (filtered.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-16 border border-dashed border-theme rounded-2xl">
                         <div class="text-faint text-2xl mb-2">◼</div>
-                        <p class="text-xs text-muted">此月份尚未有固定開支記錄</p>
+                        <p class="text-xs text-muted">${q ? '找不到符合的記錄' : '此月份尚未有固定開支記錄'}</p>
                     </div>`;
                 return;
             }
@@ -1203,12 +1337,12 @@
 
             dates.forEach((date, i) => {
                 const items = groups[date].sort((a, b) => b.amount - a.amount);
-                const dayTotal = items.reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+                const dayTotal = items.reduce((s, x) => s + toBook(x.amount, x.currency), 0);
                 const d = new Date(date + 'T00:00:00');
                 const label = `${date.slice(8)} 日（週${weekdays[d.getDay()]}）`;
                 const groupId = `fixed-day-${date}`;
                 const isToday = date === offsetDate(0);
-                const openClass = (isToday || i === 0) ? ' open' : '';
+                const openClass = (q || isToday || i === 0) ? ' open' : '';
 
                 const group = document.createElement('div');
                 group.id = groupId;
@@ -1227,7 +1361,7 @@
                                 <div class="text-[13px] font-medium text-primary truncate">${item.name}</div>
                                 <div class="text-[10px] text-muted mt-0.5">${item.category || '未分類'} · ${cycleLabel}</div>
                             </div>
-                            <span class="text-[13px] font-medium tracking-tight text-primary shrink-0">-$${fmt(item.amount)}</span>
+                            <span class="text-[13px] font-medium tracking-tight text-primary shrink-0">${money(item.amount, { neg: true, currency: item.currency || currentCurrency })}</span>
                             <button onclick="event.stopPropagation(); editFixed('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:text-primary transition-colors rounded-lg shrink-0">
                                 <i class="fa-solid fa-pen text-[10px]"></i>
                             </button>
@@ -1244,7 +1378,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="text-[13px] font-medium text-primary">${label}</div>
                         </div>
-                        <span class="text-[14px] font-semibold tracking-tight text-primary font-mono">-$${fmt(dayTotal)}</span>
+                        <span class="text-[14px] font-semibold tracking-tight text-primary font-mono">${money(dayTotal, { neg: true })}</span>
                         <i class="fa-solid fa-chevron-down text-[10px] text-muted day-chevron ml-1"></i>
                     </button>
                     <div class="day-group-body">${itemsHtml}</div>
@@ -1276,6 +1410,9 @@
 
         function openSettings() {
             document.getElementById('input-salary').value = monthlySalary;
+            const curSel = document.getElementById('input-currency');
+            if (curSel) curSel.value = currentCurrency;
+            updateFxHint();
             updateThemeButtons();
             updateAuthUI();
             document.getElementById('settings-modal').classList.add('open');
@@ -1288,16 +1425,19 @@
         function saveSettings(e) {
             e.preventDefault();
             monthlySalary = parseFloat(document.getElementById('input-salary').value) || 0;
+            const curSel = document.getElementById('input-currency');
+            if (curSel) currentCurrency = curSel.value || 'HKD';
             closeSettings();
             render();
-            showToast('已更新人工設定');
+            showToast('已更新設定');
         }
 
         function exportData() {
             const payload = {
-                version: 3,
+                version: 4,
                 exportedAt: new Date().toISOString(),
                 salary: monthlySalary,
+                currency: currentCurrency,
                 daily: dailyExpenses,
                 fixed: fixedExpenses
             };
@@ -1321,6 +1461,7 @@
                     if (data.daily) dailyExpenses = data.daily;
                     if (data.fixed) fixedExpenses = data.fixed;
                     if (data.salary !== undefined) monthlySalary = parseFloat(data.salary) || 0;
+                    if (data.currency) currentCurrency = data.currency;
                     saveAll();
                     render();
                     showToast('匯入成功');
@@ -1450,12 +1591,16 @@
                 document.getElementById('daily-edit-id').value = editItem.id;
                 document.getElementById('daily-amount').value = editItem.amount;
                 document.getElementById('daily-category').value = editItem.category;
+                const dCur = document.getElementById('daily-currency');
+                if (dCur) dCur.value = editItem.currency || currentCurrency;
                 document.getElementById('daily-note').value = editItem.note || '';
                 calSelected = editItem.date;
             } else {
                 title.textContent = '記錄日常開支';
                 const defaultDay = isCurrentMonth() ? offsetDate(0) : `${getViewYM()}-01`;
                 calSelected = defaultDay;
+                const dCur = document.getElementById('daily-currency');
+                if (dCur) dCur.value = currentCurrency;
             }
 
             const parts = calSelected.split('-');
@@ -1478,6 +1623,7 @@
                 id: id || Date.now().toString(),
                 amount: parseFloat(document.getElementById('daily-amount').value),
                 category: document.getElementById('daily-category').value,
+                currency: (document.getElementById('daily-currency') || {}).value || currentCurrency,
                 date: document.getElementById('daily-date').value,
                 note: document.getElementById('daily-note').value.trim()
             };
@@ -1517,11 +1663,13 @@
                 document.getElementById('fixed-amount').value = editItem.amount;
                 document.getElementById('fixed-cycle').value = editItem.cycle;
                 document.getElementById('fixed-category').value = editItem.category || '租金';
+                document.getElementById('fixed-currency').value = editItem.currency || currentCurrency;
                 fixedCalSelected = editItem.date || offsetDate(0);
             } else {
                 title.textContent = '新增固定開支';
                 const defaultDay = isCurrentMonth() ? offsetDate(0) : `${getViewYM()}-01`;
                 fixedCalSelected = defaultDay;
+                document.getElementById('fixed-currency').value = currentCurrency;
             }
 
             const parts = fixedCalSelected.split('-');
@@ -1546,7 +1694,8 @@
                 amount: parseFloat(document.getElementById('fixed-amount').value),
                 cycle: document.getElementById('fixed-cycle').value,
                 date: document.getElementById('fixed-date').value,
-                category: document.getElementById('fixed-category').value
+                category: document.getElementById('fixed-category').value,
+                currency: (document.getElementById('fixed-currency') || {}).value || currentCurrency
             };
 
             if (id) {
@@ -1575,6 +1724,7 @@
         window.onload = () => {
             initViewMonth();
             updateThemeButtons();
+            fetchFxRates();
             render();
         };
 
