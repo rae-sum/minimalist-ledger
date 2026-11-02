@@ -732,16 +732,9 @@
             return d.toISOString().slice(0, 10);
         }
 
-        const defaultDaily = [
-            { id: 'd1', amount: 55, category: '餐飲', note: '午餐茶餐廳', date: offsetDate(0) },
-            { id: 'd2', amount: 12.5, category: '交通', note: '地鐵', date: offsetDate(0) },
-            { id: 'd3', amount: 280, category: '日用', note: '超市日用品', date: offsetDate(-1) }
-        ];
+        const defaultDaily = [];
 
-        const defaultFixed = [
-            { id: 'f1', name: 'Netflix', amount: 93, cycle: 'monthly', date: offsetDate(0), category: '訂閱' },
-            { id: 'f2', name: '寬頻網絡', amount: 156, cycle: 'monthly', date: offsetDate(0), category: '通訊' }
-        ];
+        const defaultFixed = [];
 
         let dailyExpenses = load(KEYS.daily) || defaultDaily;
         let fixedExpenses = load(KEYS.fixed) || defaultFixed;
