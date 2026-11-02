@@ -511,7 +511,7 @@
                     <label class="block text-[11px] font-medium text-muted mb-1.5">每月固定人工 (HKD)</label>
                     <input type="number" id="input-salary" min="0" step="any" required
                         class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-base font-semibold text-primary font-mono focus:outline-none focus:border-theme transition-colors"
-                        placeholder="25000">
+                        placeholder="0">
                 </div>
                 
                 <div class="pt-2 border-t border-theme">
@@ -589,14 +589,14 @@
                     <label class="block text-[11px] font-medium text-muted mb-1.5">金額</label>
                     <input type="number" id="daily-amount" required min="0.01" step="any"
                         class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-sm text-primary font-mono focus:outline-none focus:border-theme transition-colors"
-                        placeholder="55">
+                        placeholder="0">
                 </div>
 
                 <div>
                     <label class="block text-[11px] font-medium text-muted mb-1.5">備註 <span class="text-faint">(選填)</span></label>
                     <input type="text" id="daily-note"
                         class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors"
-                        placeholder="午餐茶餐廳">
+                        placeholder="備註（選填）">
                 </div>
 
                 <div class="flex gap-2 pt-1">
@@ -659,7 +659,7 @@
                     <label class="block text-[11px] font-medium text-muted mb-1.5">項目名稱</label>
                     <input type="text" id="fixed-name" required
                         class="w-full input-theme border border-theme rounded-xl px-4 py-3 text-sm text-primary focus:outline-none focus:border-theme transition-colors"
-                        placeholder="Netflix / 租金 / 寬頻">
+                        placeholder="項目名稱">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -667,7 +667,7 @@
                         <label class="block text-[11px] font-medium text-muted mb-1.5">金額</label>
                         <input type="number" id="fixed-amount" required min="1" step="any"
                             class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary font-mono focus:outline-none focus:border-theme transition-colors"
-                            placeholder="93">
+                            placeholder="0">
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted mb-1.5">週期</label>
@@ -738,7 +738,7 @@
 
         let dailyExpenses = load(KEYS.daily) || defaultDaily;
         let fixedExpenses = load(KEYS.fixed) || defaultFixed;
-        let monthlySalary = parseFloat(localStorage.getItem(KEYS.salary)) || 25000;
+        let monthlySalary = parseFloat(localStorage.getItem(KEYS.salary)) || 0;
         let currentTab = 'dashboard';
         let viewYear, viewMonth;
 
