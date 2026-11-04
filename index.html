@@ -310,7 +310,7 @@
             <!-- Login Form -->
             <div id="splash-auth-form" class="w-full space-y-3 mb-4 hidden">
                 <input type="email" id="splash-email" placeholder="電郵地址" class="w-full input-theme border border-theme rounded-xl px-3.5 py-2.5 text-xs">
-                <input type="password" id="splash-password" placeholder="密碼" class="w-full input-theme border border-theme rounded-xl px-3.5 py-2.5 text-xs">
+                <input type="password" id="splash-password" placeholder="密碼（至少 6 位）" class="w-full input-theme border border-theme rounded-xl px-3.5 py-2.5 text-xs">
                 <div class="flex gap-2 pt-1">
                     <button type="button" onclick="splashLogin()" class="flex-1 py-2 rounded-xl text-xs font-medium btn-accent">登入</button>
                     <button type="button" onclick="splashRegister()" class="flex-1 py-2 rounded-xl text-xs font-medium bar-track text-secondary border border-theme">註冊</button>
@@ -745,11 +745,18 @@
                 db = firebase.firestore();
 
                 auth.onAuthStateChanged(user => {
+                    const prevUid = localStorage.getItem('ml_last_uid') || '';
                     currentUser = user;
                     updateAuthUI();
                     if (user) {
+                        if (prevUid && prevUid !== user.uid) {
+                            clearLocalLedger();
+                        }
+                        localStorage.setItem('ml_last_uid', user.uid);
                         dismissSplash();
                         loadFromCloud();
+                    } else {
+                        localStorage.removeItem('ml_last_uid');
                     }
                 });
             }
@@ -818,14 +825,24 @@
             db.collection('users').doc(currentUser.uid).get().then(doc => {
                 if (doc.exists) {
                     const data = doc.data();
-                    if (data.daily) dailyExpenses = data.daily;
-                    if (data.fixed) fixedExpenses = data.fixed;
-                    if (data.salary !== undefined) monthlySalary = data.salary;
-                    if (data.currency) currentCurrency = data.currency;
+                    dailyExpenses = Array.isArray(data.daily) ? data.daily : [];
+                    fixedExpenses = Array.isArray(data.fixed) ? data.fixed : [];
+                    monthlySalary = data.salary !== undefined ? parseFloat(data.salary) || 0 : 0;
+                    currentCurrency = data.currency || 'HKD';
+                    localStorage.setItem(KEYS.daily, JSON.stringify(dailyExpenses));
+                    localStorage.setItem(KEYS.fixed, JSON.stringify(fixedExpenses));
+                    localStorage.setItem(KEYS.salary, monthlySalary);
+                    localStorage.setItem(KEYS.currency, currentCurrency);
+                    render();
+                    showToast('已從雲端同步');
+                } else {
+                    // 新帳戶尚未有雲端資料：上傳目前本機狀態（註冊後應為空）
                     saveAll();
                     render();
-                    showToast('已從雲端同步數據');
                 }
+            }).catch(err => {
+                console.error(err);
+                showToast('雲端同步失敗，先使用本機資料');
             });
         }
 
@@ -857,32 +874,62 @@
             }
         }
 
+        function authErrorMsg(err) {
+            const code = (err && err.code) || '';
+            const map = {
+                'auth/email-already-in-use': '此電郵已註冊，請直接登入',
+                'auth/invalid-email': '電郵格式不正確',
+                'auth/weak-password': '密碼至少需要 6 個字元',
+                'auth/user-not-found': '找不到此帳號，請先註冊',
+                'auth/wrong-password': '密碼錯誤',
+                'auth/invalid-credential': '電郵或密碼不正確',
+                'auth/too-many-requests': '嘗試次數過多，請稍後再試',
+                'auth/network-request-failed': '網路連線失敗，請檢查網絡'
+            };
+            return map[code] || (err && err.message) || '操作失敗';
+        }
+
+        function clearLocalLedger() {
+            dailyExpenses = [];
+            fixedExpenses = [];
+            monthlySalary = 0;
+            currentCurrency = 'HKD';
+            try {
+                localStorage.removeItem(KEYS.daily);
+                localStorage.removeItem(KEYS.fixed);
+                localStorage.removeItem(KEYS.salary);
+                localStorage.setItem(KEYS.currency, 'HKD');
+            } catch (_) {}
+        }
+
         function splashLogin() {
-            const email = document.getElementById('splash-email').value;
+            const email = (document.getElementById('splash-email').value || '').trim();
             const pass = document.getElementById('splash-password').value;
             if (!email || !pass) return showToast('請輸入電郵與密碼');
-
             if (!auth) return showToast('Firebase 未初始化');
             auth.signInWithEmailAndPassword(email, pass)
                 .then(() => {
                     showToast('登入成功');
                     dismissSplash();
                 })
-                .catch(err => showToast('登入失敗: ' + err.message));
+                .catch(err => showToast(authErrorMsg(err)));
         }
 
         function splashRegister() {
-            const email = document.getElementById('splash-email').value;
+            const email = (document.getElementById('splash-email').value || '').trim();
             const pass = document.getElementById('splash-password').value;
             if (!email || !pass) return showToast('請輸入電郵與密碼');
-
+            if (pass.length < 6) return showToast('密碼至少需要 6 個字元');
             if (!auth) return showToast('Firebase 未初始化');
             auth.createUserWithEmailAndPassword(email, pass)
                 .then(() => {
-                    showToast('註冊成功');
+                    clearLocalLedger();
+                    saveAll();
+                    render();
+                    showToast('註冊成功，已建立你的雲端帳本');
                     dismissSplash();
                 })
-                .catch(err => showToast('註冊失敗: ' + err.message));
+                .catch(err => showToast(authErrorMsg(err)));
         }
 
         function openAuthModal() {
@@ -905,6 +952,7 @@
         }
 
         function enterGuestMode() {
+            showToast('訪客模式：資料只存在此裝置');
             dismissSplash();
         }
 
@@ -925,8 +973,26 @@
         function logoutFirebase() {
             if (!auth) return;
             auth.signOut().then(() => {
-                showToast('已登出');
+                clearLocalLedger();
+                currentUser = null;
                 updateAuthUI();
+                closeSettings();
+                render();
+                // 顯示 splash 再登入
+                const splash = document.getElementById('splash-screen');
+                const app = document.getElementById('app-container');
+                if (splash) {
+                    splash.style.display = '';
+                    splash.style.opacity = '1';
+                    const actions = document.getElementById('splash-actions');
+                    const form = document.getElementById('splash-auth-form');
+                    if (actions) actions.classList.remove('hidden');
+                    if (form) form.classList.add('hidden');
+                }
+                if (app) {
+                    app.classList.add('opacity-0', 'pointer-events-none');
+                }
+                showToast('已登出');
             });
         }
 
@@ -1403,7 +1469,7 @@
                 darkBtn.className = base + ' btn-accent';
                 lightBtn.className = base + ' text-muted';
             } else {
-                lightBtn.className = base + ' text-muted';
+                lightBtn.className = base + ' btn-accent';
                 darkBtn.className = base + ' text-muted';
             }
         }
