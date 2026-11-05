@@ -418,7 +418,10 @@
             <!-- DAILY -->
             <section id="view-daily" class="hidden space-y-3">
                 <div class="px-0.5">
-                    <h2 class="text-sm font-semibold text-primary mb-2.5">日常開支</h2>
+                    <div class="flex items-center justify-between mb-2.5">
+                        <h2 class="text-sm font-semibold text-primary">日常開支</h2>
+                        <span id="daily-month-total" class="text-sm font-semibold font-mono text-primary tracking-tight">—</span>
+                    </div>
                     <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-2">
                         <i class="fa-solid fa-magnifying-glass text-[10px] text-faint shrink-0"></i>
                         <input type="search" id="daily-search" enterkeyhint="search" autocomplete="off"
@@ -433,7 +436,10 @@
             <!-- FIXED -->
             <section id="view-fixed" class="hidden space-y-3">
                 <div class="px-0.5">
-                    <h2 class="text-sm font-semibold text-primary mb-2.5">固定開支</h2>
+                    <div class="flex items-center justify-between mb-2.5">
+                        <h2 class="text-sm font-semibold text-primary">固定開支</h2>
+                        <span id="fixed-month-total" class="text-sm font-semibold font-mono text-primary tracking-tight">—</span>
+                    </div>
                     <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-2">
                         <i class="fa-solid fa-magnifying-glass text-[10px] text-faint shrink-0"></i>
                         <input type="search" id="fixed-search" enterkeyhint="search" autocomplete="off"
@@ -1293,8 +1299,12 @@
             const container = document.getElementById('daily-list');
             container.innerHTML = '';
             const ym = getViewYM();
+            const monthItems = dailyExpenses.filter(item => item.date && item.date.startsWith(ym));
+            const monthTotal = monthItems.reduce((s, x) => s + toBook(x.amount, x.currency), 0);
+            const totalEl = document.getElementById('daily-month-total');
+            if (totalEl) totalEl.textContent = money(monthTotal, { neg: true });
             const q = (document.getElementById('daily-search')?.value || '').trim().toLowerCase();
-            let filtered = dailyExpenses.filter(item => item.date && item.date.startsWith(ym));
+            let filtered = monthItems.slice();
             if (q) {
                 filtered = filtered.filter(item => {
                     const hay = [item.note, item.category, item.amount, item.currency, item.date]
@@ -1328,7 +1338,7 @@
                 const label = `${date.slice(8)} 日（週${weekdays[d.getDay()]}）`;
                 const groupId = `day-${date}`;
                 const isToday = date === offsetDate(0);
-                const openClass = (q || isToday || i === 0) ? ' open' : '';
+                const openClass = (q || isToday) ? ' open' : '';
 
                 const group = document.createElement('div');
                 group.id = groupId;
@@ -1373,8 +1383,12 @@
             const container = document.getElementById('fixed-list');
             container.innerHTML = '';
             const ym = getViewYM();
+            const monthItems = fixedExpenses.filter(item => item.date && item.date.startsWith(ym));
+            const monthTotal = monthItems.reduce((s, x) => s + toBook(x.amount, x.currency), 0);
+            const totalEl = document.getElementById('fixed-month-total');
+            if (totalEl) totalEl.textContent = money(monthTotal, { neg: true });
             const q = (document.getElementById('fixed-search')?.value || '').trim().toLowerCase();
-            let filtered = fixedExpenses.filter(item => item.date && item.date.startsWith(ym));
+            let filtered = monthItems.slice();
             if (q) {
                 filtered = filtered.filter(item => {
                     const hay = [item.name, item.category, item.amount, item.currency, item.cycle, item.date]
@@ -1408,7 +1422,7 @@
                 const label = `${date.slice(8)} 日（週${weekdays[d.getDay()]}）`;
                 const groupId = `fixed-day-${date}`;
                 const isToday = date === offsetDate(0);
-                const openClass = (q || isToday || i === 0) ? ' open' : '';
+                const openClass = (q || isToday) ? ' open' : '';
 
                 const group = document.createElement('div');
                 group.id = groupId;
