@@ -260,6 +260,7 @@
             letter-spacing: -0.03em;
             line-height: 1.1;
             color: var(--text);
+            font-variant-numeric: tabular-nums;
         }
         .hero-amount.danger {
             color: var(--danger);
@@ -275,6 +276,24 @@
         .hero-meta span b {
             color: var(--text-secondary);
             font-weight: 500;
+        }
+        .hero-meta .meta-out b {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .amount-expense {
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+        .amount-total {
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+        .amount-muted {
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
         }
 
         .gold-highlight {
@@ -357,7 +376,7 @@
                 <div class="hero-meta">
                     <span>人工 <b id="display-salary">$0</b></span>
                     <span>·</span>
-                    <span>支出 <b id="display-outflow">$0</b></span>
+                    <span class="meta-out">支出 <b id="display-outflow">$0</b></span>
                 </div>
             </div>
         </header>
@@ -371,11 +390,11 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <span class="text-[10px] text-muted block mb-1">日常開支</span>
-                            <span id="display-daily-total" class="text-base font-semibold tracking-tight text-primary font-mono">$0</span>
+                            <span id="display-daily-total" class="amount-expense text-base tracking-tight font-mono">$0</span>
                         </div>
                         <div class="text-right">
                             <span class="text-[10px] text-muted block mb-1">固定開支</span>
-                            <span id="display-fixed-total" class="text-base font-semibold tracking-tight text-primary font-mono">$0</span>
+                            <span id="display-fixed-total" class="amount-expense text-base tracking-tight font-mono">$0</span>
                         </div>
                     </div>
                 </div>
@@ -405,7 +424,7 @@
                 <div class="card rounded-xl px-4 py-3">
                     <div class="flex items-center justify-between">
                         <span class="text-[11px] text-muted">累計總支出</span>
-                        <span id="lifetime-total" class="text-[13px] font-medium tracking-tight text-primary">$0</span>
+                        <span id="lifetime-total" class="amount-total text-[13px] tracking-tight font-mono">$0</span>
                     </div>
                     <div class="divider-line my-3"></div>
                     <div class="flex items-center justify-between">
@@ -420,7 +439,7 @@
                 <div class="px-0.5">
                     <div class="flex items-center justify-between mb-2.5">
                         <h2 class="text-sm font-semibold text-primary">日常開支</h2>
-                        <span id="daily-month-total" class="text-sm font-semibold font-mono text-primary tracking-tight">—</span>
+                        <span id="daily-month-total" class="amount-total text-sm font-mono tracking-tight">—</span>
                     </div>
                     <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-2">
                         <i class="fa-solid fa-magnifying-glass text-[10px] text-faint shrink-0"></i>
@@ -438,7 +457,7 @@
                 <div class="px-0.5">
                     <div class="flex items-center justify-between mb-2.5">
                         <h2 class="text-sm font-semibold text-primary">固定開支</h2>
-                        <span id="fixed-month-total" class="text-sm font-semibold font-mono text-primary tracking-tight">—</span>
+                        <span id="fixed-month-total" class="amount-total text-sm font-mono tracking-tight">—</span>
                     </div>
                     <div class="flex items-center gap-2 input-theme border border-theme rounded-xl px-3 py-2">
                         <i class="fa-solid fa-magnifying-glass text-[10px] text-faint shrink-0"></i>
@@ -606,6 +625,7 @@
                         <option value="購物">購物</option>
                         <option value="娛樂">娛樂</option>
                         <option value="醫療">醫療</option>
+                        <option value="旅遊">旅遊</option>
                         <option value="雜項">雜項</option>
                     </select>
                 </div>
@@ -1117,6 +1137,7 @@
                 '購物': 'fa-bag-shopping',
                 '娛樂': 'fa-beer-mug-empty',
                 '醫療': 'fa-kit-medical',
+                '旅遊': 'fa-plane',
                 '雜項': 'fa-receipt'
             };
             return icons[cat] || 'fa-receipt';
@@ -1160,7 +1181,7 @@
 
         function getDailyForMonth(ym) {
             let total = 0;
-            const cats = { '餐飲':0, '交通':0, '食材':0, '日用':0, '購物':0, '娛樂':0, '醫療':0, '雜項':0 };
+            const cats = { '餐飲':0, '交通':0, '食材':0, '日用':0, '購物':0, '娛樂':0, '醫療':0, '旅遊':0, '雜項':0 };
             dailyExpenses.forEach(item => {
                 if (item.date && item.date.startsWith(ym)) {
                     const amt = toBook(item.amount, item.currency);
@@ -1272,7 +1293,7 @@
                 row.innerHTML = `
                     <div class="flex justify-between items-baseline text-[12px]">
                         <span class="text-secondary">${cat}</span>
-                        <span class="text-primary tracking-tight">${money(val)} <span class="text-faint text-[11px]">${pct}%</span></span>
+                        <span class="amount-expense tracking-tight">${money(val)} <span class="text-faint text-[11px]">${pct}%</span></span>
                     </div>
                     <div class="h-[3px] bar-track rounded-full overflow-hidden">
                         <div class="bar-fill h-full bar-fill-theme rounded-full" style="width: ${pct}%"></div>
@@ -1354,7 +1375,7 @@
                             <div class="text-[13px] font-medium text-primary truncate">${item.note || item.category}</div>
                             <div class="text-[10px] text-muted mt-0.5">${item.category}</div>
                         </div>
-                        <span class="text-[13px] font-medium tracking-tight text-primary shrink-0">${money(item.amount, { neg: true, currency: item.currency || currentCurrency })}</span>
+                        <span class="amount-expense text-[13px] tracking-tight shrink-0">${money(item.amount, { neg: true, currency: item.currency || currentCurrency })}</span>
                         <button onclick="event.stopPropagation(); editDaily('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:text-primary transition-colors rounded-lg shrink-0">
                             <i class="fa-solid fa-pen text-[10px]"></i>
                         </button>
@@ -1370,7 +1391,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="text-[13px] font-medium text-primary">${label}</div>
                         </div>
-                        <span class="text-[14px] font-semibold tracking-tight text-primary font-mono">${money(dayTotal, { neg: true })}</span>
+                        <span class="amount-total text-[14px] tracking-tight font-mono">${money(dayTotal, { neg: true })}</span>
                         <i class="fa-solid fa-chevron-down text-[10px] text-muted day-chevron ml-1"></i>
                     </button>
                     <div class="day-group-body">${itemsHtml}</div>
@@ -1441,7 +1462,7 @@
                                 <div class="text-[13px] font-medium text-primary truncate">${item.name}</div>
                                 <div class="text-[10px] text-muted mt-0.5">${item.category || '未分類'} · ${cycleLabel}</div>
                             </div>
-                            <span class="text-[13px] font-medium tracking-tight text-primary shrink-0">${money(item.amount, { neg: true, currency: item.currency || currentCurrency })}</span>
+                            <span class="amount-expense text-[13px] tracking-tight shrink-0">${money(item.amount, { neg: true, currency: item.currency || currentCurrency })}</span>
                             <button onclick="event.stopPropagation(); editFixed('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:text-primary transition-colors rounded-lg shrink-0">
                                 <i class="fa-solid fa-pen text-[10px]"></i>
                             </button>
@@ -1458,7 +1479,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="text-[13px] font-medium text-primary">${label}</div>
                         </div>
-                        <span class="text-[14px] font-semibold tracking-tight text-primary font-mono">${money(dayTotal, { neg: true })}</span>
+                        <span class="amount-total text-[14px] tracking-tight font-mono">${money(dayTotal, { neg: true })}</span>
                         <i class="fa-solid fa-chevron-down text-[10px] text-muted day-chevron ml-1"></i>
                     </button>
                     <div class="day-group-body">${itemsHtml}</div>
