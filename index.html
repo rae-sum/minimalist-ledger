@@ -363,9 +363,14 @@
                 <div id="month-display" class="text-[12px] font-medium tracking-wide text-primary"></div>
                 <div id="month-status" class="text-[9px] text-faint mt-0.5 tracking-wide"></div>
             </div>
-            <button onclick="changeMonth(1)" id="btn-next-month" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-primary transition-colors">
-                <i class="fa-solid fa-chevron-right text-[10px]"></i>
-            </button>
+            <div class="flex items-center gap-0.5">
+                <button onclick="openSettings()" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-primary transition-colors" title="設定">
+                    <i class="fa-solid fa-bars text-[12px]"></i>
+                </button>
+                <button onclick="changeMonth(1)" id="btn-next-month" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-primary transition-colors">
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Hero balance card -->
@@ -378,6 +383,10 @@
                     <span>·</span>
                     <span class="meta-out">支出 <b id="display-outflow">$0</b></span>
                 </div>
+                <button type="button" onclick="switchTab('commission')" class="hero-meta mt-2 pt-2 w-full justify-center border-t border-theme" style="margin-top:0.75rem;padding-top:0.65rem;background:transparent;cursor:pointer;">
+                    <span>季度佣金 <b id="display-commission-pool">$0</b></span>
+                    <span class="text-faint text-[10px] ml-1">詳情</span>
+                </button>
             </div>
         </header>
 
@@ -469,6 +478,28 @@
                 </div>
                 <div id="fixed-list" class="space-y-2.5"></div>
             </section>
+
+            <!-- QUARTERLY COMMISSION -->
+            <section id="view-commission" class="hidden space-y-3">
+                <div class="px-0.5 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-primary">季度佣金</h2>
+                    <span id="settle-pool-total" class="amount-total text-sm font-mono">$0</span>
+                </div>
+                <p class="text-[10px] text-faint px-0.5">按季入帳，當儲蓄用途，唔計入每月餘額</p>
+                <button type="button" onclick="openCommissionModal()" class="w-full py-2.5 rounded-xl text-xs font-medium btn-accent">記一筆佣金</button>
+                <div id="commission-list" class="space-y-2"></div>
+            </section>
+
+            <!-- CREDIT CARD STATEMENTS (independent page) -->
+            <section id="view-statement" class="hidden space-y-3">
+                <div class="px-0.5 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-primary">信用卡結單</h2>
+                    <span id="settle-due-total" class="amount-expense text-sm font-mono">$0</span>
+                </div>
+                <p class="text-[10px] text-faint px-0.5">記錄結單找數金額同到期日（同日常開支分開）</p>
+                <button type="button" onclick="openStatementModal()" class="w-full py-2.5 rounded-xl text-xs font-medium btn-accent">記一筆結單</button>
+                <div id="statement-list" class="space-y-2"></div>
+            </section>
         </main>
     </div>
 
@@ -495,9 +526,9 @@
                 </svg>
                 <span class="text-[10px] font-medium">固定</span>
             </button>
-            <button onclick="openSettings()" class="flex-1 flex flex-col items-center gap-1 py-2 text-muted transition-colors">
-                <i class="fa-solid fa-bars text-[15px]"></i>
-                <span class="text-[10px] font-medium">設定</span>
+            <button onclick="switchTab('statement')" id="tab-statement" class="tab-btn flex-1 flex flex-col items-center gap-1 py-2 text-muted transition-colors">
+                <i class="fa-regular fa-credit-card text-[15px]"></i>
+                <span class="text-[10px] font-medium">結單</span>
             </button>
         </div>
     </nav>
@@ -557,7 +588,7 @@
                     </div>
                     <div id="fx-rate-hint" class="text-[10px] text-faint mt-1.5"></div>
                 </div>
-                
+
                 <div class="pt-2 border-t border-theme">
                     <p class="text-[11px] text-muted mb-3">備份與匯入</p>
                     <div class="flex gap-2">
@@ -749,6 +780,102 @@
         </div>
     </div>
 
+
+    <!-- COMMISSION MODAL -->
+    <div id="commission-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+        <div class="modal-panel w-full max-w-md rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 id="commission-modal-title" class="text-sm font-semibold text-primary">記一筆佣金</h3>
+                <button onclick="closeCommissionModal()" class="text-muted hover:text-primary transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveCommission(event)" class="space-y-3.5">
+                <input type="hidden" id="commission-edit-id">
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">季度</label>
+                    <select id="commission-quarter" class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none">
+                        <option value="Q1">Q1（1–3 月）</option>
+                        <option value="Q2">Q2（4–6 月）</option>
+                        <option value="Q3">Q3（7–9 月）</option>
+                        <option value="Q4">Q4（10–12 月）</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">年份</label>
+                    <input type="number" id="commission-year" required min="2020" max="2100"
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary font-mono focus:outline-none" placeholder="2026">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">入帳金額</label>
+                    <input type="number" id="commission-amount" required min="0.01" step="any"
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary font-mono focus:outline-none" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">入帳日期</label>
+                    <input type="date" id="commission-date" required
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">備註 <span class="text-faint">(選填)</span></label>
+                    <input type="text" id="commission-note"
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none" placeholder="例如：3 月 25 日出糧一齊入">
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeCommissionModal()" class="flex-1 py-2.5 rounded-xl text-xs font-medium bar-track text-secondary border border-theme">取消</button>
+                    <button type="submit" class="flex-1 py-2.5 rounded-xl text-xs font-medium btn-accent">確認</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- STATEMENT MODAL -->
+    <div id="statement-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+        <div class="modal-panel w-full max-w-md rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 id="statement-modal-title" class="text-sm font-semibold text-primary">記一筆月結</h3>
+                <button onclick="closeStatementModal()" class="text-muted hover:text-primary transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveStatement(event)" class="space-y-3.5">
+                <input type="hidden" id="statement-edit-id">
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">結單月份</label>
+                    <input type="month" id="statement-month" required
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">找數金額</label>
+                    <input type="number" id="statement-amount" required min="0.01" step="any"
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary font-mono focus:outline-none" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">卡／帳戶 <span class="text-faint">(選填)</span></label>
+                    <input type="text" id="statement-card"
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none" placeholder="例如：HSBC Visa">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">到期日／計劃找數日</label>
+                    <input type="date" id="statement-due"
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">狀態</label>
+                    <select id="statement-status" class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none">
+                        <option value="pending">未付</option>
+                        <option value="paid">已付</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-muted mb-1.5">備註 <span class="text-faint">(選填)</span></label>
+                    <input type="text" id="statement-note"
+                        class="w-full input-theme border border-theme rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none" placeholder="選填">
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeStatementModal()" class="flex-1 py-2.5 rounded-xl text-xs font-medium bar-track text-secondary border border-theme">取消</button>
+                    <button type="submit" class="flex-1 py-2.5 rounded-xl text-xs font-medium btn-accent">確認</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Application Script -->
     <script>
         const firebaseConfig = {
@@ -794,6 +921,8 @@
             daily: 'ml_v3_daily',
             fixed: 'ml_v3_fixed',
             salary: 'ml_v3_salary',
+            commissions: 'ml_v3_commissions',
+            statements: 'ml_v3_statements',
             currency: 'ml_v3_currency'
         };
 
@@ -817,6 +946,8 @@
         let dailyExpenses = load(KEYS.daily) || defaultDaily;
         let fixedExpenses = load(KEYS.fixed) || defaultFixed;
         let monthlySalary = parseFloat(localStorage.getItem(KEYS.salary)) || 0;
+        let commissions = load(KEYS.commissions) || [];
+        let statements = load(KEYS.statements) || [];
         let currentCurrency = localStorage.getItem(KEYS.currency) || 'HKD';
         let fxRates = { HKD: 1 }; // base HKD
         let currentTab = 'dashboard';
@@ -833,6 +964,8 @@
             localStorage.setItem(KEYS.daily, JSON.stringify(dailyExpenses));
             localStorage.setItem(KEYS.fixed, JSON.stringify(fixedExpenses));
             localStorage.setItem(KEYS.salary, monthlySalary);
+            localStorage.setItem(KEYS.commissions, JSON.stringify(commissions));
+            localStorage.setItem(KEYS.statements, JSON.stringify(statements));
             localStorage.setItem(KEYS.currency, currentCurrency);
 
             if (currentUser && db) {
@@ -840,6 +973,8 @@
                     daily: dailyExpenses,
                     fixed: fixedExpenses,
                     salary: monthlySalary,
+                    commissions: commissions,
+                    statements: statements,
                     currency: currentCurrency,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true }).catch(err => console.error("Cloud sync error:", err));
@@ -854,10 +989,14 @@
                     dailyExpenses = Array.isArray(data.daily) ? data.daily : [];
                     fixedExpenses = Array.isArray(data.fixed) ? data.fixed : [];
                     monthlySalary = data.salary !== undefined ? parseFloat(data.salary) || 0 : 0;
+                    commissions = Array.isArray(data.commissions) ? data.commissions : [];
+                    statements = Array.isArray(data.statements) ? data.statements : [];
                     currentCurrency = data.currency || 'HKD';
                     localStorage.setItem(KEYS.daily, JSON.stringify(dailyExpenses));
                     localStorage.setItem(KEYS.fixed, JSON.stringify(fixedExpenses));
                     localStorage.setItem(KEYS.salary, monthlySalary);
+                    localStorage.setItem(KEYS.commissions, JSON.stringify(commissions));
+                    localStorage.setItem(KEYS.statements, JSON.stringify(statements));
                     localStorage.setItem(KEYS.currency, currentCurrency);
                     render();
                     showToast('已從雲端同步');
@@ -919,11 +1058,15 @@
             dailyExpenses = [];
             fixedExpenses = [];
             monthlySalary = 0;
+            commissions = [];
+            statements = [];
             currentCurrency = 'HKD';
             try {
                 localStorage.removeItem(KEYS.daily);
                 localStorage.removeItem(KEYS.fixed);
                 localStorage.removeItem(KEYS.salary);
+                localStorage.removeItem(KEYS.commissions);
+                localStorage.removeItem(KEYS.statements);
                 localStorage.setItem(KEYS.currency, 'HKD');
             } catch (_) {}
         }
@@ -1204,17 +1347,15 @@
 
         function switchTab(tab) {
             currentTab = tab;
-            ['dashboard', 'daily', 'fixed'].forEach(t => {
+            ['dashboard', 'daily', 'fixed', 'commission', 'statement'].forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
                 const view = document.getElementById(`view-${t}`);
                 if (t === tab) {
-                    btn.classList.add('tab-active');
-                    btn.classList.remove('text-muted');
-                    view.classList.remove('hidden');
+                    if (btn) { btn.classList.add('tab-active'); btn.classList.remove('text-muted'); }
+                    if (view) view.classList.remove('hidden');
                 } else {
-                    btn.classList.remove('tab-active');
-                    btn.classList.add('text-muted');
-                    view.classList.add('hidden');
+                    if (btn) { btn.classList.remove('tab-active'); btn.classList.add('text-muted'); }
+                    if (view) view.classList.add('hidden');
                 }
             });
             render();
@@ -1222,15 +1363,39 @@
 
         function openAdd() {
             if (currentTab === 'fixed') openFixedModal();
+            else if (currentTab === 'statement') openStatementModal();
+            else if (currentTab === 'commission') openCommissionModal();
             else openDailyModal();
+        }
+
+        function commissionPoolTotal() {
+            return commissions.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0);
+        }
+
+        function statementDueTotal() {
+            return statements
+                .filter(x => x.status !== 'paid')
+                .reduce((s, x) => s + (parseFloat(x.amount) || 0), 0);
+        }
+
+        function monthlyIncome() {
+            // 每月餘額只用底薪；佣金入池儲住
+            return parseFloat(monthlySalary) || 0;
         }
 
         function render() {
             updateMonthUI();
             document.getElementById('display-salary').textContent = money(monthlySalary);
+            const pool = commissionPoolTotal();
+            const due = statementDueTotal();
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = money(val); };
+            setTxt('display-commission-pool', pool);
+            setTxt('settle-pool-total', pool);
+            setTxt('settle-due-total', due);
             renderDashboard();
             renderDailyList();
             renderFixedList();
+            renderSettleLists();
             saveAll();
         }
 
@@ -1239,7 +1404,7 @@
             const fixedMonthly = getFixedMonthly();
             const { total: dailyTotal, cats } = getDailyForMonth(ym);
             const totalOut = fixedMonthly + dailyTotal;
-            const net = monthlySalary - totalOut;
+            const net = monthlyIncome() - totalOut;
 
             document.getElementById('display-outflow').textContent = money(totalOut);
             document.getElementById('display-fixed-total').textContent = money(fixedMonthly);
@@ -1538,6 +1703,8 @@
                 version: 4,
                 exportedAt: new Date().toISOString(),
                 salary: monthlySalary,
+                commissions: commissions,
+                statements: statements,
                 currency: currentCurrency,
                 daily: dailyExpenses,
                 fixed: fixedExpenses
@@ -1562,6 +1729,8 @@
                     if (data.daily) dailyExpenses = data.daily;
                     if (data.fixed) fixedExpenses = data.fixed;
                     if (data.salary !== undefined) monthlySalary = parseFloat(data.salary) || 0;
+                    if (Array.isArray(data.commissions)) commissions = data.commissions;
+                    if (Array.isArray(data.statements)) statements = data.statements;
                     if (data.currency) currentCurrency = data.currency;
                     saveAll();
                     render();
@@ -1822,6 +1991,166 @@
             showToast('已刪除');
         }
 
+
+        function renderSettleLists() {
+            const cBox = document.getElementById('commission-list');
+            const sBox = document.getElementById('statement-list');
+            if (!cBox || !sBox) return;
+
+            if (!commissions.length) {
+                cBox.innerHTML = `<div class="text-center py-8 border border-dashed border-theme rounded-2xl"><p class="text-xs text-muted">尚未記錄佣金</p></div>`;
+            } else {
+                const sorted = [...commissions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                cBox.innerHTML = sorted.map(item => `
+                    <div class="card rounded-xl px-3.5 py-3 flex items-center gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-medium text-primary">${item.year || ''} ${item.quarter || ''}</div>
+                            <div class="text-[10px] text-muted mt-0.5">${item.date || ''}${item.note ? ' · ' + item.note : ''}</div>
+                        </div>
+                        <span class="amount-total text-[13px] font-mono shrink-0">${money(item.amount)}</span>
+                        <button onclick="editCommission('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        <button onclick="deleteCommission('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:danger"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    </div>
+                `).join('');
+            }
+
+            if (!statements.length) {
+                sBox.innerHTML = `<div class="text-center py-8 border border-dashed border-theme rounded-2xl"><p class="text-xs text-muted">尚未記錄月結</p></div>`;
+            } else {
+                const sorted = [...statements].sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+                sBox.innerHTML = sorted.map(item => {
+                    const paid = item.status === 'paid';
+                    return `
+                    <div class="card rounded-xl px-3.5 py-3 flex items-center gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-medium text-primary">${item.month || ''}${item.card ? ' · ' + item.card : ''}</div>
+                            <div class="text-[10px] text-muted mt-0.5">${paid ? '已付' : '未付'}${item.due ? ' · 到期 ' + item.due : ''}${item.note ? ' · ' + item.note : ''}</div>
+                        </div>
+                        <span class="${paid ? 'amount-muted' : 'amount-expense'} text-[13px] font-mono shrink-0">${money(item.amount)}</span>
+                        <button onclick="toggleStatementPaid('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted" title="切換已付/未付"><i class="fa-solid ${paid ? 'fa-rotate-left' : 'fa-check'} text-[10px]"></i></button>
+                        <button onclick="editStatement('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        <button onclick="deleteStatement('${item.id}')" class="w-7 h-7 flex items-center justify-center text-muted hover:danger"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        function openCommissionModal(editItem = null) {
+            document.getElementById('commission-modal').querySelector('form').reset();
+            document.getElementById('commission-edit-id').value = '';
+            const y = new Date().getFullYear();
+            const m = new Date().getMonth();
+            const q = m < 3 ? 'Q1' : m < 6 ? 'Q2' : m < 9 ? 'Q3' : 'Q4';
+            if (editItem) {
+                document.getElementById('commission-modal-title').textContent = '編輯佣金';
+                document.getElementById('commission-edit-id').value = editItem.id;
+                document.getElementById('commission-quarter').value = editItem.quarter || q;
+                document.getElementById('commission-year').value = editItem.year || y;
+                document.getElementById('commission-amount').value = editItem.amount;
+                document.getElementById('commission-date').value = editItem.date || '';
+                document.getElementById('commission-note').value = editItem.note || '';
+            } else {
+                document.getElementById('commission-modal-title').textContent = '記一筆佣金';
+                document.getElementById('commission-quarter').value = q;
+                document.getElementById('commission-year').value = y;
+                document.getElementById('commission-date').value = offsetDate(0);
+            }
+            document.getElementById('commission-modal').classList.add('open');
+        }
+        function closeCommissionModal() { document.getElementById('commission-modal').classList.remove('open'); }
+        function saveCommission(e) {
+            e.preventDefault();
+            const id = document.getElementById('commission-edit-id').value;
+            const data = {
+                id: id || Date.now().toString(),
+                quarter: document.getElementById('commission-quarter').value,
+                year: parseInt(document.getElementById('commission-year').value, 10),
+                amount: parseFloat(document.getElementById('commission-amount').value) || 0,
+                date: document.getElementById('commission-date').value,
+                note: document.getElementById('commission-note').value.trim()
+            };
+            if (id) {
+                const i = commissions.findIndex(x => x.id === id);
+                if (i !== -1) commissions[i] = data;
+                showToast('已更新佣金');
+            } else {
+                commissions.push(data);
+                showToast('已記入季度佣金');
+            }
+            closeCommissionModal();
+            render();
+        }
+        function editCommission(id) {
+            const item = commissions.find(x => x.id === id);
+            if (item) openCommissionModal(item);
+        }
+        function deleteCommission(id) {
+            commissions = commissions.filter(x => x.id !== id);
+            render();
+            showToast('已刪除');
+        }
+
+        function openStatementModal(editItem = null) {
+            document.getElementById('statement-modal').querySelector('form').reset();
+            document.getElementById('statement-edit-id').value = '';
+            const ym = getViewYM();
+            if (editItem) {
+                document.getElementById('statement-modal-title').textContent = '編輯月結';
+                document.getElementById('statement-edit-id').value = editItem.id;
+                document.getElementById('statement-month').value = editItem.month || ym;
+                document.getElementById('statement-amount').value = editItem.amount;
+                document.getElementById('statement-card').value = editItem.card || '';
+                document.getElementById('statement-due').value = editItem.due || '';
+                document.getElementById('statement-status').value = editItem.status || 'pending';
+                document.getElementById('statement-note').value = editItem.note || '';
+            } else {
+                document.getElementById('statement-modal-title').textContent = '記一筆月結';
+                document.getElementById('statement-month').value = ym;
+                document.getElementById('statement-status').value = 'pending';
+            }
+            document.getElementById('statement-modal').classList.add('open');
+        }
+        function closeStatementModal() { document.getElementById('statement-modal').classList.remove('open'); }
+        function saveStatement(e) {
+            e.preventDefault();
+            const id = document.getElementById('statement-edit-id').value;
+            const data = {
+                id: id || Date.now().toString(),
+                month: document.getElementById('statement-month').value,
+                amount: parseFloat(document.getElementById('statement-amount').value) || 0,
+                card: document.getElementById('statement-card').value.trim(),
+                due: document.getElementById('statement-due').value,
+                status: document.getElementById('statement-status').value,
+                note: document.getElementById('statement-note').value.trim()
+            };
+            if (id) {
+                const i = statements.findIndex(x => x.id === id);
+                if (i !== -1) statements[i] = data;
+                showToast('已更新月結');
+            } else {
+                statements.push(data);
+                showToast('已記錄月結');
+            }
+            closeStatementModal();
+            render();
+        }
+        function editStatement(id) {
+            const item = statements.find(x => x.id === id);
+            if (item) openStatementModal(item);
+        }
+        function deleteStatement(id) {
+            statements = statements.filter(x => x.id !== id);
+            render();
+            showToast('已刪除');
+        }
+        function toggleStatementPaid(id) {
+            const item = statements.find(x => x.id === id);
+            if (!item) return;
+            item.status = item.status === 'paid' ? 'pending' : 'paid';
+            render();
+            showToast(item.status === 'paid' ? '已標為已付' : '已標為未付');
+        }
+
         window.onload = () => {
             initViewMonth();
             updateThemeButtons();
@@ -1829,7 +2158,7 @@
             render();
         };
 
-        ['settings-modal', 'daily-modal', 'fixed-modal'].forEach(id => {
+        ['settings-modal', 'daily-modal', 'fixed-modal', 'commission-modal', 'statement-modal'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('click', e => {
